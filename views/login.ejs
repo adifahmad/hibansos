@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HIBANSOS - Login</title>
+  <link rel="stylesheet" href="stylesheets/css/styles.css">
+</head>
+<body>
+  <div class="login-wrapper">
+    
+    <!-- KIRI: Gambar beras -->
+    <div class="login-left">
+      <img src="images/beras.jpg" alt="Gambar Beras" class="login-bg">
+      <div class="login-overlay"></div>
+    </div>
+
+    <!-- KANAN: Form Login -->
+    <div class="login-right">
+      <!-- Logo di atas kiri -->
+      <div class="login-logo-box">
+        <img src="images/dollar.png" alt="Logo Hibansos" class="login-logo">
+        <div class="login-logo-text">
+          <h2>HIBANSOS</h2>
+          <p>APP</p>
+        </div>
+      </div>
+
+      <!-- Kotak Login -->
+      <div class="login-card">
+        <h2>LOGIN</h2>
+        <form action="/login" method="POST" enctype="application/x-www-form-urlencoded">
+          <label>Username :</label>
+          <input type="text" name="username" placeholder="Masukkan Username">
+
+          <label>Email Address :</label>
+          <input type="email" name="email" placeholder="Masukkan Email">
+
+          <label>Password :</label>
+          <input type="password" name="password" placeholder="Masukkan Password">
+
+          <div class="login-note">
+            Belum punya akun? <a href="register">Buat akun disini</a>
+          </div>
+
+          <button type="submit" class="login-btn" onclick="window.location.href='/users'">LOGIN</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<%- include('../partials/header', { title: "Profil Saya" , user }) %>
+
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green">
+            <div class="sb-sidenav-menu">
+                <%- include(`../partials/menu/${user.role}`) %>
+            </div>
+        </nav>
+    </div>
+
+    <div id="layoutSidenav_content">
+        <main>
+            <div class="container-fluid px-4 mt-4">
+
+                <h1 class="fw-bold mb-3">Profil Saya</h1>
+                <p class="text-muted">Perbarui data pribadi Anda.</p>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+
+                        <form method="POST" action="/users/profile">
+
+                            <div class="mb-3">
+                                <label class="form-label">Nama</label>
+                                <input type="text" name="name" class="form-control" value="<%= data.name %>" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="email" class="form-control" value="<%= data.email %>"
+                                    required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Organisasi</label>
+                                <input type="text" name="organization" class="form-control"
+                                    value="<%= data.organization %>">
+                            </div>
+
+                            <h4 class="fw-bold">Lokasi Lembaga</h4>
+                            <p class="text-muted">Edit lokasi kegiatan / lembaga</p>
+
+                            <form method="POST" action="/users/pemohon/profile/location/edit">
+
+                                <input type="hidden" name="latitude" id="geo-lat" value="<%= data.latitude || '' %>">
+                                <input type="hidden" name="longitude" id="geo-lng" value="<%= data.longitude || '' %>">
+                                <input type="hidden" name="address" id="geo-address" value="<%= data.address || '' %>">
+
+                                <div id="geo-map" style="height:300px;border-radius:8px;"></div>
+
+                                <div class="mb-4 mt-4">
+                                    <button class="btn btn-success">
+                                        <i class="fas fa-map-marker-alt"></i> Simpan Lokasi
+                                    </button>
+                                </div>
+                            </form>
+
+                            <button class="btn btn-success">
+                                <i class="fas fa-save"></i> Simpan
+                            </button>
+
+                        </form>
+
+                        <hr class="my-4">
+
+                        <h4 class="fw-bold">Legalitas Lembaga</h4>
+
+                        <% if (!legalitas) { %>
+                            <div class="alert alert-warning">
+                                Legalitas belum diisi
+                                <a href="/users/pemohon/legalitas" class="btn btn-sm btn-primary ms-2">
+                                    Lengkapi Sekarang
+                                </a>
+                            </div>
+
+                            <% } else { %>
+
+                                <p>
+                                    <strong>Status:</strong>
+                                    <% if (legalitas.verification_status==='approved' ) { %>
+                                        <span class="badge bg-success">Terverifikasi</span>
+                                        <% } else if (legalitas.verification_status==='rejected' ) { %>
+                                            <span class="badge bg-danger">Ditolak</span>
+                                            <% } else { %>
+                                                <span class="badge bg-warning text-dark">Menunggu Verifikasi</span>
+                                                <% } %>
+                                </p>
+
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td>Nomor Akta</td>
+                                        <td>
+                                            <%= legalitas.deed_number || '-' %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Notaris</td>
+                                        <td>
+                                            <%= legalitas.notary_name || '-' %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>NIB</td>
+                                        <td>
+                                            <%= legalitas.nib || '-' %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>NPWP</td>
+                                        <td>
+                                            <%= legalitas.npwp || '-' %>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <% if (legalitas.verification_status==='pending' ) { %>
+                                    <a href="/users/pemohon/legalitas/edit" class="btn btn-warning mb-3">
+                                        <i class="fas fa-edit me-1"></i>
+                                        Edit Legalitas
+                                    </a>
+                                    <% } %>
+
+                                        <% if (legalitas.verification_status==='rejected' ) { %>
+                                            <div class="alert alert-danger mt-3">
+                                                <strong>Legalitas Ditolak</strong><br>
+                                                Silakan perbaiki data dan unggah ulang dokumen untuk mengajukan kembali.
+                                            </div>
+
+                                            <a href="/users/pemohon/legalitas/edit" class="btn btn-warning mb-4">
+                                                <i class="fas fa-rotate-right"></i>
+                                                Ajukan Ulang Legalitas
+                                            </a>
+                                            <% } %>
+
+                                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                                    <div>
+                                                        <h4 class="fw-bold mb-0">Dokumen Pendukung</h4>
+                                                        <p class="text-muted mb-0">
+                                                            File yang telah Anda unggah (Akta, NPWP, NIB, dll)
+                                                        </p>
+                                                    </div>
+                                                    <% if (legalitas.verification_status==='pending' ||
+                                                        legalitas.verification_status==='rejected' ) { %>
+                                                        <form method="POST"
+                                                            action="/users/pemohon/legalitas/document/upload"
+                                                            enctype="multipart/form-data"
+                                                            class="d-flex align-items-center gap-2 mb-3">
+
+                                                            <input type="file" name="document_file"
+                                                                accept="application/pdf" required
+                                                                class="form-control form-control-sm"
+                                                                style="max-width:260px">
+
+                                                            <button type="submit" class="btn btn-success btn-sm">
+                                                                <i class="fas fa-plus"></i>
+                                                            </button>
+                                                        </form>
+                                                        <% } %>
+                                                </div>
+
+                                                <% if (!documents || documents.length===0) { %>
+                                                    <div class="alert alert-secondary">
+                                                        Belum ada dokumen terunggah
+                                                    </div>
+                                                    <% } else { %>
+
+                                                        <div class="row">
+                                                            <% documents.forEach(d=> { %>
+                                                                <div class="col-md-6 mb-3">
+                                                                    <div
+                                                                        class="border rounded p-3 h-100 position-relative">
+
+                                                                        <p class="fw-bold mb-2">
+                                                                            <i class="fas fa-paperclip me-1"></i>
+                                                                            <%= d.file_name %>
+                                                                        </p>
+
+                                                                        <% if (d.file_path &&
+                                                                            d.file_path.endsWith('.pdf')) { %>
+                                                                            <iframe src="/uploads/<%= d.file_path %>"
+                                                                                style="width:100%; height:220px; border:1px solid #ddd;">
+                                                                            </iframe>
+                                                                            <% } %>
+
+                                                                                <a href="/uploads/<%= d.file_path %>"
+                                                                                    target="_blank"
+                                                                                    class="btn btn-sm btn-outline-primary mt-2">
+                                                                                    <i class="fas fa-eye"></i> Lihat
+                                                                                    Dokumen
+                                                                                </a>
+                                                                                <% if
+                                                                                    (legalitas.verification_status==='pending'
+                                                                                    ) { %>
+                                                                                    <form method="POST"
+                                                                                        action="/users/pemohon/legalitas/document/delete"
+                                                                                        class="position-absolute top-0 end-0 m-2">
+
+                                                                                        <input type="hidden"
+                                                                                            name="document_id"
+                                                                                            value="<%= d.documents_id %>">
+
+                                                                                        <button type="submit"
+                                                                                            class="btn btn-sm text-danger p-0 border-0 bg-transparent fw-bold"
+                                                                                            style="font-size:20px; line-height:1;"
+                                                                                            onclick="return confirm('Hapus dokumen ini?')"
+                                                                                            title="Hapus dokumen">
+                                                                                            ×
+                                                                                        </button>
+                                                                                    </form>
+                                                                                    <% } %>
+                                                                    </div>
+                                                                </div>
+                                                                <% }) %>
+                                                        </div>
+
+                                                        <% } %>
+
+                                                            <% if (legalitas.verification_notes) { %>
+                                                                <div class="alert alert-info">
+                                                                    <strong>Catatan Admin:</strong><br>
+                                                                    <%= legalitas.verification_notes %>
+                                                                </div>
+                                                                <% } %>
+
+                                                                    <% } %>
+
+                    </div>
+                </div>
+
+            </div>
+        </main>
+        <script>
+            let map, marker, geocoder;
+
+            function initMap() {
+                const lat = parseFloat(document.getElementById('geo-lat').value);
+                const lng = parseFloat(document.getElementById('geo-lng').value);
+
+                const center = { lat, lng };
+
+                map = new google.maps.Map(document.getElementById('geo-map'), {
+                    center,
+                    zoom: 14
+                });
+
+                geocoder = new google.maps.Geocoder();
+
+                marker = new google.maps.Marker({
+                    position: center,
+                    map,
+                    draggable: true
+                });
+
+                function update(pos) {
+                    document.getElementById('geo-lat').value = pos.lat();
+                    document.getElementById('geo-lng').value = pos.lng();
+
+                    geocoder.geocode({ location: pos }, (res, status) => {
+                        if (status === 'OK' && res[0]) {
+                            document.getElementById('geo-address').value =
+                                res[0].formatted_address;
+                        }
+                    });
+                }
+
+                marker.addListener('dragend', e => update(e.latLng));
+                map.addListener('click', e => {
+                    marker.setPosition(e.latLng);
+                    update(e.latLng);
+                });
+            }
+        </script>
+
+        <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBVwNA-qXTdffMhWW8YsclY5_Z9ZwKffKE&libraries=places&callback=initMap">
+            </script>
+        <%- include('../partials/footer') %>
+    </div>

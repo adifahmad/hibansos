@@ -1,0 +1,43 @@
+<%- include('../partials/header', { title: "Pengaturan Sistem", user }) %>
+
+<div id="layoutSidenav_nav">
+  <nav class="sb-sidenav accordion spotify-green">
+    <div class="sb-sidenav-menu">
+      <%- include('../partials/menu/admin') %>
+    </div>
+  </nav>
+</div>
+
+<div id="layoutSidenav_content">
+  <main>
+    <div class="container-fluid px-4 mt-4">
+
+      <h1 class="fw-bold mb-3">Pengaturan Sistem</h1>
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" checked>
+            <label class="form-check-label">
+              Aktifkan Email Notifikasi
+            </label>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Batas Upload File (MB)</label>
+            <input type="number" class="form-control" value="10">
+          </div>
+
+          <button class="btn btn-success">
+            Simpan Pengaturan
+          </button>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+</div>

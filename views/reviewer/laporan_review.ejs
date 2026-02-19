@@ -1,0 +1,90 @@
+<%- include('../partials/header', { title: "Laporan Review" , user }) %>
+
+<div id="layoutSidenav_nav">
+  <nav class="sb-sidenav accordion spotify-green">
+    <div class="sb-sidenav-menu">
+      <%- include(`../partials/menu/${user.role}`) %>
+    </div>
+  </nav>
+</div>
+
+<div id="layoutSidenav_content">
+  <main>
+    <div class="container-fluid px-4 mt-4">
+
+      <h1 class="fw-bold">Laporan Review</h1>
+      <p class="text-muted">
+        Rekap hasil review yang telah Anda lakukan.
+      </p>
+
+      <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+
+          <table class="table table-bordered table-striped align-middle">
+            <thead>
+              <tr>
+                <th>Judul</th>
+                <th>Pemohon</th>
+                <th>Kategori</th>
+                <th>Dana</th>
+                <th>Status Review</th>
+                <th>Tanggal Review</th>
+                <th>Catatan</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <% if (data.length === 0) { %>
+                <tr>
+                  <td colspan="7" class="text-center text-muted">
+                    Belum ada data review
+                  </td>
+                </tr>
+              <% } %>
+
+              <% data.forEach(r => { %>
+                <tr>
+                  <td><%= r.title %></td>
+                  <td><%= r.pemohon_name %></td>
+                  <td><%= r.category %></td>
+                  <td>Rp <%= Number(r.request_amount).toLocaleString('id-ID') %></td>
+
+                  <td>
+                    <span class="badge
+                      <%= r.review_status === 'approved'
+                        ? 'bg-success'
+                        : r.review_status === 'rejected'
+                        ? 'bg-danger'
+                        : 'bg-secondary' %>">
+                      <%= r.review_status %>
+                    </span>
+                  </td>
+
+                  <td>
+                    <% 
+                      const reviewedDate = r.reviewed_at 
+                        ? new Date(r.reviewed_at) 
+                        : null;
+                    %>
+
+                    <% if (reviewedDate && !isNaN(reviewedDate)) { %>
+                      <%= reviewedDate.toLocaleDateString('id-ID') %>
+                    <% } else { %>
+                      <span class="text-muted fst-italic">-</span>
+                    <% } %>
+                  </td>
+
+                  <td><%= r.comments || '-' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+</div>

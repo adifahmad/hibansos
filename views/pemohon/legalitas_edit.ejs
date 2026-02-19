@@ -1,0 +1,121 @@
+<%- include('../partials/header', { title: "Ajukan Ulang Legalitas", user }) %>
+
+<div id="layoutSidenav_nav">
+  <nav class="sb-sidenav accordion spotify-green">
+    <div class="sb-sidenav-menu">
+      <%- include(`../partials/menu/${user.role}`) %>
+    </div>
+  </nav>
+</div>
+
+<div id="layoutSidenav_content">
+  <main>
+    <div class="container-fluid px-4 mt-4">
+
+      <h1 class="fw-bold">Ajukan Ulang/Edit Legalitas</h1>
+      <p class="text-muted">
+        Perbaiki data dan unggah ulang dokumen sesuai catatan admin.
+      </p>
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+
+          <form method="POST"
+                action="/users/pemohon/legalitas"
+                enctype="multipart/form-data">
+
+            <!-- ================= DATA LEGALITAS ================= -->
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Nomor Akta</label>
+              <input type="text"
+                     name="deed_number"
+                     class="form-control"
+                     value="<%= legalitas.deed_number %>"
+                     required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Nama Notaris</label>
+              <input type="text"
+                     name="notary_name"
+                     class="form-control"
+                     value="<%= legalitas.notary_name %>"
+                     required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">NIB</label>
+              <input type="text"
+                     name="nib"
+                     class="form-control"
+                     value="<%= legalitas.nib %>"
+                     required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">NPWP</label>
+              <input type="text"
+                     name="npwp"
+                     class="form-control"
+                     value="<%= legalitas.npwp %>"
+                     required>
+            </div>
+
+            <% if (legalitas.verification_status !== 'pending') { %>
+
+            <hr class="my-4">
+
+            <!-- ================= UPLOAD DOKUMEN ================= -->
+
+            <h5 class="fw-bold mb-3">Upload Dokumen Pendukung</h5>
+
+            <div class="mb-3">
+              <label class="form-label">Akta Pendirian (PDF)</label>
+              <input type="file"
+                     name="akta_file"
+                     class="form-control"
+                     accept="application/pdf">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">NIB (PDF)</label>
+              <input type="file"
+                     name="nib_file"
+                     class="form-control"
+                     accept="application/pdf">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">NPWP (PDF)</label>
+              <input type="file"
+                     name="npwp_file"
+                     class="form-control"
+                     accept="application/pdf">
+            </div>
+
+            <% } %>
+
+            <!-- ================= ACTION ================= -->
+
+            <div class="mt-4">
+              <button class="btn btn-success fw-bold">
+                <i class="fas fa-paper-plane me-1"></i> Simpan
+              </button>
+
+              <a href="/users/pemohon/profile"
+                 class="btn btn-secondary ms-2">
+                Batal
+              </a>
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+</div>

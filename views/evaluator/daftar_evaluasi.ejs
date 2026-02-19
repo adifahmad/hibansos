@@ -1,0 +1,69 @@
+<%- include('../partials/header', { title: "Daftar Pengajuan Evaluasi", user }) %>
+
+<div id="layoutSidenav_nav">
+  <nav class="sb-sidenav accordion spotify-green">
+    <div class="sb-sidenav-menu">
+      <%- include(`../partials/menu/${user.role}`) %>
+    </div>
+  </nav>
+</div>
+
+<div id="layoutSidenav_content">
+  <main>
+    <div class="container-fluid px-4 mt-4">
+
+      <h1 class="fw-bold mb-2">Daftar Pengajuan untuk Evaluasi</h1>
+      <p class="text-muted mb-4">
+        Pengajuan yang telah direview dan menunggu evaluasi akhir.
+      </p>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-0">
+
+          <table class="table table-bordered table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Judul</th>
+                <th>Kategori</th>
+                <th>Dana</th>
+                <th style="width:120px">Aksi</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <% if (data.length === 0) { %>
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">
+                    <i class="fas fa-folder-open fa-2x mb-2"></i><br>
+                    Tidak ada pengajuan untuk evaluasi
+                  </td>
+                </tr>
+              <% } %>
+
+              <% data.forEach(p => { %>
+                <tr>
+                  <td><%= p.title %></td>
+                  <td><%= p.category %></td>
+                  <td>
+                    Rp <%= Number(p.request_amount).toLocaleString('id-ID') %>
+                  </td>
+                  <td class="text-center">
+                    <a href="/users/evaluator/pengajuan/<%= p.application_id %>"
+                       class="btn btn-sm btn-success">
+                      <i class="fas fa-clipboard-check"></i> Evaluasi
+                    </a>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+
+          </table>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+</div>

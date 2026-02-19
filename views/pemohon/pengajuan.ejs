@@ -1,0 +1,241 @@
+<%- include('../partials/header', { title: "Ajukan Hibah" , user }) %>
+
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green" id="sidenavAccordion">
+
+            <div class="sb-sidenav-menu">
+                <%- include(`../partials/menu/${user.role}`) %>
+            </div>
+
+            <div class="sb-sidenav-footer">
+                <div class="small">Logged in as:</div>
+                <%= user.role %>
+            </div>
+
+        </nav>
+    </div>
+
+    <div id="layoutSidenav_content">
+        <main>
+            <div class="container-fluid px-4">
+
+                <h1 class="mt-4 fw-bold">Ajukan Hibah</h1>
+                <p class="text-muted">Isi formulir berikut untuk mengajukan proposal hibah.</p>
+
+                <form action="/users/pemohon/pengajuan-baru" method="POST" enctype="multipart/form-data" class="mt-4">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Judul Proposal</label>
+                        <input type="text" name="title" class="form-control" placeholder="Masukkan judul proposal"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kategori Hibah</label>
+                        <select name="category" class="form-select" required>
+                            <option value="">-- Pilih Kategori --</option>
+                            <option value="pendidikan">Pendidikan</option>
+                            <option value="kesehatan">Kesehatan</option>
+                            <option value="sosial">Sosial</option>
+                            <option value="ekonomi">Ekonomi</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Jumlah Dana (Rp)</label>
+                        <input type="number" name="requested_amount" class="form-control" placeholder="Contoh: 50000000"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Deskripsi Proposal</label>
+                        <textarea name="description" rows="5" class="form-control"
+                            placeholder="Jelaskan detail proposal Anda" required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Jumlah Penerima Manfaat</label>
+                        <input type="number" name="beneficiaries_count" class="form-control"
+                            placeholder="Contoh: 150 orang" min="1" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Lokasi Kegiatan</label>
+
+                        <input type="text" id="search-location" class="form-control mb-2"
+                            placeholder="Cari alamat atau tempat..." required>
+
+                        <div id="map" style="height:350px; border-radius:8px; border:1px solid #ddd;">
+                        </div>
+
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
+                        <input type="hidden" name="location_detail" id="address">
+                    </div>
+
+                    <div class="mt-2">
+                        <label class="form-label fw-bold">Foto Lokasi (Max 4 Foto)</label>
+                        <input type="file" name="location_photos" id="locationPhotos" class="form-control"
+                            accept="image/*" multiple>
+                        <small class="text-muted">Upload maksimal 4 foto lokasi kegiatan.</small>
+                    </div>
+                    <div id="previewList" class="mb-4"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Upload Dokumen Pendukung (PDF/DOCX)</label>
+                        <input type="file" name="document" class="form-control" accept=".pdf,.doc,.docx" required>
+                    </div>
+
+                    <div class="mt-5 mb-4">
+                        <% if (legalitasStatus==='approved' ) { %>
+                            <button type="submit" class="btn btn-success fw-bold">
+                                <i class="fas fa-paper-plane"></i> Ajukan Proposal
+                            </button>
+                            <% } else { %>
+                                <button type="button" class="btn btn-secondary fw-bold" disabled
+                                    title="Legalitas lembaga belum diverifikasi admin">
+                                    <i class="fas fa-lock"></i> Legalitas Belum Diverifikasi
+                                </button>
+
+                                <div class="mt-3 text-warning">
+                                    ⚠️ Anda harus melengkapi dan menunggu verifikasi legalitas lembaga
+                                    sebelum dapat mengajukan proposal.
+                                </div>
+                                <% } %>
+                    </div>
+
+                </form>
+
+            </div>
+        </main>
+        <script>
+            let map, marker, geocoder, autocomplete;
+
+            function initMap() {
+                const defaultLoc = { lat: -6.200000, lng: 106.816666 };
+
+                map = new google.maps.Map(document.getElementById("map"), {
+                    center: defaultLoc,
+                    zoom: 13
+                });
+
+                geocoder = new google.maps.Geocoder();
+
+                marker = new google.maps.Marker({
+                    position: defaultLoc,
+                    map: map,
+                    draggable: true
+                });
+
+                updateLocation(defaultLoc);
+
+                const input = document.getElementById("search-location");
+                autocomplete = new google.maps.places.Autocomplete(input);
+                autocomplete.bindTo("bounds", map);
+
+                autocomplete.addListener("place_changed", () => {
+                    const place = autocomplete.getPlace();
+                    if (!place.geometry) return;
+
+                    map.setCenter(place.geometry.location);
+                    map.setZoom(17);
+                    marker.setPosition(place.geometry.location);
+
+                    updateLocation({
+                        lat: place.geometry.location.lat(),
+                        lng: place.geometry.location.lng()
+                    });
+                });
+
+                marker.addListener("dragend", (event) => {
+                    updateLocation({
+                        lat: event.latLng.lat(),
+                        lng: event.latLng.lng()
+                    });
+                });
+
+                map.addListener("click", (event) => {
+                    marker.setPosition(event.latLng);
+                    updateLocation({
+                        lat: event.latLng.lat(),
+                        lng: event.latLng.lng()
+                    });
+                });
+            }
+
+            function updateLocation(latLng) {
+                document.getElementById("latitude").value = latLng.lat;
+                document.getElementById("longitude").value = latLng.lng;
+
+                geocoder.geocode({ location: latLng }, (results, status) => {
+                    if (status === "OK" && results[0]) {
+                        document.getElementById("address").value =
+                            results[0].formatted_address;
+                    }
+                });
+            }
+        </script>
+
+        <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBVwNA-qXTdffMhWW8YsclY5_Z9ZwKffKE&libraries=places&callback=initMap">
+            </script>
+
+        <script>
+            const input = document.getElementById('locationPhotos');
+            const preview = document.getElementById('previewList');
+
+            let fileStore = new DataTransfer();
+
+            input.addEventListener('change', function (e) {
+
+                const newFiles = Array.from(e.target.files);
+
+                newFiles.forEach(file => {
+                    if (fileStore.files.length < 4) {
+                        fileStore.items.add(file);
+                    } else {
+                        alert("Maksimal 4 foto!");
+                    }
+                });
+
+                input.files = fileStore.files;
+
+                renderPreview();
+            });
+
+            function renderPreview() {
+                preview.innerHTML = "";
+
+                Array.from(fileStore.files).forEach((file, index) => {
+
+                    const div = document.createElement("div");
+                    div.className = "d-flex justify-content-between align-items-center mt-1";
+
+                    div.innerHTML = `
+      <span>📎 ${file.name}</span>
+      <button type="button"
+              class="btn btn-sm text-danger fw-bold"
+              onclick="removeFile(${index})">
+        X
+      </button>
+    `;
+
+                    preview.appendChild(div);
+                });
+            }
+
+            function removeFile(index) {
+                const dt = new DataTransfer();
+
+                Array.from(fileStore.files).forEach((file, i) => {
+                    if (i !== index) dt.items.add(file);
+                });
+
+                fileStore = dt;
+                input.files = fileStore.files;
+
+                renderPreview();
+            }
+        </script>
+
+        <%- include('../partials/footer') %>

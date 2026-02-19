@@ -1,0 +1,133 @@
+<%- include('../partials/header', { title: "Review Pengajuan", user }) %>
+
+<div id="layoutSidenav_nav">
+  <nav class="sb-sidenav accordion spotify-green" id="sidenavAccordion">
+    <div class="sb-sidenav-menu">
+      <%- include(`../partials/menu/${user.role}`) %>
+    </div>
+  </nav>
+</div>
+
+<div id="layoutSidenav_content">
+  <main>
+    <div class="container-fluid px-4 mt-4">
+
+      <h1 class="fw-bold mb-1">Review Pengajuan</h1>
+      <p class="text-muted mb-4">
+        Daftar pengajuan yang ditugaskan kepada Anda.
+      </p>
+
+      <% if (Array.isArray(data)) { %>
+
+        <div class="card shadow-sm">
+          <div class="card-body p-0">
+
+            <table class="table table-bordered table-hover align-middle mb-0 w-100">
+              <thead class="table-light">
+                <tr>
+                  <th>Judul</th>
+                  <th>Kategori</th>
+                  <th>Dana</th>
+                  <th>Status</th>
+                  <th style="width:140px">Aksi</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <% if (data.length === 0) { %>
+                  <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                      Belum ada pengajuan untuk direview
+                    </td>
+                  </tr>
+                <% } %>
+
+                <% data.forEach(p => { %>
+                  <tr>
+                    <td><%= p.title %></td>
+                    <td><%= p.category %></td>
+                    <td>
+                      Rp <%= Number(p.request_amount).toLocaleString('id-ID') %>
+                    </td>
+                    <td>
+                      <span class="badge 
+                        <%= p.review_status === 'approved' ? 'bg-success'
+                          : p.review_status === 'rejected' ? 'bg-danger'
+                          : 'bg-secondary' %>">
+                        <%= p.review_status || 'pending' %>
+                      </span>
+                    </td>
+                    <td class="text-center">
+                      <a href="/users/reviewer/pengajuan/<%= p.application_id %>"
+                         class="btn btn-sm btn-primary">
+                        <i class="fas fa-search"></i> Review
+                      </a>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+
+          </div>
+        </div>
+
+      <% } else { %>
+
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <h5 class="fw-bold"><%= data.title %></h5>
+            <p><strong>Kategori:</strong> <%= data.category %></p>
+            <p><strong>Dana:</strong>
+              Rp <%= Number(data.request_amount).toLocaleString('id-ID') %>
+            </p>
+            <hr>
+            <p><strong>Deskripsi:</strong></p>
+            <p><%= data.description %></p>
+          </div>
+        </div>
+
+        <div class="card shadow-sm">
+          <div class="card-body">
+
+            <form method="POST"
+                  action="/users/reviewer/pengajuan/<%= data.application_id %>/review">
+
+              <div class="mb-3">
+                <label class="form-label fw-bold">Keputusan</label>
+                <select name="review_status" class="form-select" required>
+                  <option value="">-- Pilih --</option>
+                  <option value="approved">Approve</option>
+                  <option value="rejected">Reject</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-bold">Komentar Reviewer</label>
+                <textarea name="comments"
+                          class="form-control"
+                          rows="4"
+                          required></textarea>
+              </div>
+
+              <button class="btn btn-success fw-bold me-2">
+                <i class="fas fa-check"></i> Submit Review
+              </button>
+
+              <a href="/users/reviewer/pengajuan" class="btn btn-secondary">
+                Kembali
+              </a>
+
+            </form>
+
+          </div>
+        </div>
+
+      <% } %>
+
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+</div>
+
+

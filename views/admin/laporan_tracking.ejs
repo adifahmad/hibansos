@@ -1,0 +1,57 @@
+<%- include('../partials/header', { title: "Tracking Pengajuan", user }) %>
+
+<div id="layoutSidenav_nav">
+    <nav class="sb-sidenav accordion spotify-green">
+      <div class="sb-sidenav-menu">
+        <%- include('../partials/menu/admin') %>
+      </div>
+    </nav>
+  </div>
+
+  <div id="layoutSidenav_content">
+    <main class="container-fluid px-4 mt-4">
+
+      <h1 class="fw-bold mb-3">
+        Tracking Pengajuan
+      </h1>
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Judul</th>
+                <th>Pemohon</th>
+                <th>Status</th>
+                <th style="width:140px">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% data.forEach(p => { %>
+                <tr>
+                  <td><%= p.title %></td>
+                  <td><%= p.name %></td>
+                  <td>
+                    <span class="badge bg-info">
+                      <%= p.status %>
+                    </span>
+                  </td>
+                  <td>
+                    <a href="/users/admin/pengajuan/<%= p.application_id %>/tracking"
+                       class="btn btn-sm btn-success">
+                      Detail
+                    </a>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+    </main>
+    <%- include('../partials/footer') %>
+  </div>
+</div>

@@ -1,0 +1,151 @@
+<%- include('../partials/header', { title: "Detail Review" , user }) %>
+
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green">
+            <div class="sb-sidenav-menu">
+                <%- include(`../partials/menu/${user.role}`) %>
+            </div>
+        </nav>
+    </div>
+
+    <div id="layoutSidenav_content">
+        <main>
+            <div class="container-fluid px-4 mt-4">
+
+                <h1 class="fw-bold">Detail Review Pengajuan</h1>
+                <p class="text-muted">Review dan beri keputusan pada pengajuan.</p>
+
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold">
+                            <%= data.title %>
+                        </h5>
+                        <p><strong>Pemohon:</strong>
+                            <%= data.pemohon_name %>
+                        </p>
+                        <p><strong>Kategori:</strong>
+                            <%= data.category %>
+                        </p>
+                        <p><strong>Dana:</strong> Rp <%= Number(data.request_amount).toLocaleString('id-ID') %>
+                        </p>
+
+                        <hr>
+
+                        <p><strong>Deskripsi:</strong></p>
+                        <p>
+                            <%= data.description %>
+                        </p>
+
+                        <hr>
+
+                        <p>
+                            <strong>Penerima Manfaat:</strong><br>
+                            <%= data.beneficiaries_count || 0 %> Orang
+                        </p>
+
+                        <p>
+                            <strong>Lokasi Detail:</strong><br>
+                            <%= data.location_detail || '-' %>
+                        </p>
+
+                        <% if (data.latitude && data.longitude) { %>
+                            <div class="mt-2 mb-3">
+                                <iframe width="100%" height="250" style="border:0; border-radius:8px" loading="lazy"
+                                    allowfullscreen
+                                    src="https://www.google.com/maps?q=<%= data.latitude %>,<%= data.longitude %>&hl=id&z=15&output=embed">
+                                </iframe>
+                            </div>
+                            <% } %>
+
+                                <% if (photos && photos.length> 0) { %>
+
+                                    <hr>
+                                    <p class="fw-bold mt-3">Foto Kegiatan</p>
+
+                                    <div class="row">
+                                        <% photos.forEach(photo=> { %>
+                                            <div class="col-md-6 mb-3">
+                                                <img src="/uploads/<%= photo.photo_path %>"
+                                                    class="img-fluid rounded shadow-sm"
+                                                    style="height:200px; object-fit:cover; width:100%;">
+                                            </div>
+                                            <% }) %>
+                                    </div>
+
+                                    <% } %>
+
+                                        <p class="fw-bold mt-3">Dokumen Terlampir</p>
+
+                                        <% if (documents && documents.length> 0) { %>
+                                            <% documents.forEach(doc=> { %>
+                                                <a href="/uploads/<%= doc.file_path %>" target="_blank"
+                                                    class="btn btn-outline-primary btn-sm d-block mb-2">
+                                                    <i class="fas fa-file"></i>
+                                                    <%= doc.file_name %>
+                                                </a>
+                                                <% }) %>
+                                                    <% } else { %>
+                                                        <span class="text-muted fst-italic">Tidak ada dokumen
+                                                            terlampir</span>
+                                                        <% } %>
+
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+
+                        <form method="POST" action="/users/reviewer/pengajuan/<%= data.application_id %>/review">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Keputusan</label>
+                                <select name="review_status" id="reviewStatus" class="form-select" required>
+                                    <option value="">-- Pilih --</option>
+                                    <option value="approved">Approve</option>
+                                    <option value="rejected">Reject</option>
+                                    <option value="needs_revision">Needs Revision</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3" id="approvedAmountWrapper" style="display:none;">
+                                <label class="form-label fw-bold">Dana Disetujui (Rp)</label>
+                                <input type="number" name="approved_amount" class="form-control" min="0"
+                                    placeholder="Masukkan dana yang disetujui">
+                                <small class="text-muted">
+                                    Isi hanya jika pengajuan di-approve.
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Komentar Reviewer</label>
+                                <textarea name="comments" class="form-control" rows="4" required></textarea>
+                            </div>
+
+                            <button class="btn btn-success fw-bold">
+                                <i class="fas fa-check"></i> Submit Review
+                            </button>
+
+                            <a href="/users/reviewer/pengajuan" class="btn btn-secondary ms-2">
+                                Kembali
+                            </a>
+
+                        </form>
+
+                    </div>
+                </div>
+
+            </div>
+        </main>
+        <script>
+            document.getElementById("reviewStatus").addEventListener("change", function () {
+                const wrapper = document.getElementById("approvedAmountWrapper");
+
+                if (this.value === "approved") {
+                    wrapper.style.display = "block";
+                } else {
+                    wrapper.style.display = "none";
+                }
+            });
+        </script>
+        <%- include('../partials/footer') %>
+    </div>

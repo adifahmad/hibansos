@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - HIBANSOS APP</title>
+  <link rel="stylesheet" href="stylesheets/css/styles.css" />
+</head>
+
+<body>
+
+  <div class="register">
+    <div class="register-container">
+      <!-- Bagian Kiri -->
+      <div class="register-left">
+        <div class="register-logo">
+          <div class="register-logo-circle">$</div>
+          <div class="register-logo-text">HIBANSOS<br>APP</div>
+        </div>
+
+        <h2>Register</h2>
+        <p>Lengkapi detail anda</p>
+
+        <form action="/register/step2" method="POST" enctype="application/x-www-form-urlencoded">
+          <div class="register-form-group">
+            <label>Nama Lengkap</label>
+            <input type="text" name="name" placeholder="Masukkan nama lengkap" />
+          </div>
+
+
+          <div class="register-form-group">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="Masukkan username" />
+          </div>
+
+          <div class="register-form-group">
+            <label>Email</label>
+            <input type="email" name="email" placeholder="Masukkan email anda" />
+          </div>
+
+          <div class="register-form-group register-password">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Masukkan password" />
+            <span class="register-eye">👁️</span>
+          </div>
+
+          <div class="register-form-group register-password">
+            <label>Konfirmasi Password</label>
+            <input type="password" name="repassword" placeholder="Ulangi password" />
+            <span class="register-eye">👁️</span>
+          </div>
+
+          <div class="register-form-group with-arrow">
+            <label for="role">Pilih Peran:</label>
+            <select id="role" name="role">
+              <option value="" disabled>Pilih peran...</option>
+
+              <option value="pemohon" selected>Pemohon</option>
+
+              <option value="reviewer" disabled>Reviewer</option>
+              <option value="evaluator" disabled>Evaluator</option>
+              <option value="admin" disabled>Admin</option>
+            </select>
+          </div>
+
+          <div class="register-form-group register-password">
+            <label>Organisasi</label>
+            <input type="text" name="organization" placeholder="Masukkan nama organisasi" />
+          </div>
+
+          <button type="submit" class="register-btn">Lanjut ke Peta</button>
+        </form>
+      </div>
+
+      <!-- Bagian Kanan -->
+      <div class="register-right">
+        <img src="images/packagedelivery.png" alt="Ilustrasi kurir" />
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>

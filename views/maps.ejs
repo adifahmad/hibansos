@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cek Lokasimu</title>
+  <link rel="stylesheet" href="/stylesheets/css/styles.css">
+</head>
+
+<body>
+  <div class="geo-container">
+    <h2 class="geo-title">Cek Lokasimu</h2>
+    <p class="geo-subtext">📍 Pilih Koordinat di Peta</p>
+
+    <!-- Input pencarian lokasi -->
+    <input id="geo-search" type="text" placeholder="Cari alamat atau tempat..." class="geo-search">
+
+    <!-- Google Map -->
+    <div id="geo-map" class="geo-map"></div>
+
+    <!-- 🔥 FORM BARU: kirim ke /register/map/finish -->
+    <form method="POST" action="/register/map/finish" class="geo-form">
+
+      <!-- Latitude & Longitude sejajar -->
+      <div class="geo-coord-inputs">
+        <div class="geo-input-wrapper">
+          <label for="geo-lat">Latitude</label>
+          <input type="text" id="geo-lat" name="latitude" readonly>
+        </div>
+        <div class="geo-input-wrapper">
+          <label for="geo-lng">Longitude</label>
+          <input type="text" id="geo-lng" name="longitude" readonly>
+        </div>
+      </div>
+
+      <div class="geo-underline"></div>
+
+      <input type="text" id="geo-address" name="address" placeholder="Alamat" readonly class="geo-address">
+
+      <div class="geo-underline"></div>
+
+      <!-- 🔥 Tombol baru -->
+      <button class="geo-btn" type="submit">Lanjut Verifikasi Email</button>
+    </form>
+  </div>
+
+  <script>
+    let geoMap, geoMarker, geocoder, autocomplete;
+
+    function updateInputs(lat, lng) {
+      document.getElementById("geo-lat").value = lat.toFixed(6);
+      document.getElementById("geo-lng").value = lng.toFixed(6);
+    }
+
+    function reverseGeocode(latLng) {
+      if (!geocoder) return;
+      geocoder.geocode({ location: latLng }, (results, status) => {
+        if (status === "OK" && results[0]) {
+          document.getElementById("geo-address").value = results[0].formatted_address;
+        } else {
+          document.getElementById("geo-address").value = "";
+        }
+      });
+    }
+
+    function initMap() {
+      const defaultLoc = { lat: -6.200000, lng: 106.816666 };
+
+      geoMap = new google.maps.Map(document.getElementById("geo-map"), {
+        center: defaultLoc,
+        zoom: 13,
+      });
+
+      geocoder = new google.maps.Geocoder();
+
+      geoMarker = new google.maps.Marker({
+        position: defaultLoc,
+        map: geoMap,
+        draggable: true,
+        title: "Geser aku untuk ubah lokasi!",
+        animation: google.maps.Animation.DROP,
+      });
+
+      const input = document.getElementById("geo-search");
+      autocomplete = new google.maps.places.Autocomplete(input, { fields: ["geometry", "formatted_address", "name"] });
+      autocomplete.bindTo("bounds", geoMap);
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) return;
+
+        if (place.geometry.viewport) geoMap.fitBounds(place.geometry.viewport);
+        else {
+          geoMap.setCenter(place.geometry.location);
+          geoMap.setZoom(17);
+        }
+
+        geoMarker.setPosition(place.geometry.location);
+        updateInputs(place.geometry.location.lat(), place.geometry.location.lng());
+        document.getElementById("geo-address"),value = place.formatted_address || place.name || "";
+      });
+
+      geoMarker.addListener("dragend", (event) => {
+        const lat = event.latLng.lat();
+        const lng = event.latLng.lng();
+        updateInputs(lat, lng);
+        reverseGeocode({ lat, lng });
+      });
+
+      geoMap.addListener("click", (event) => {
+        const lat = event.latLng.lat();
+        const lng = event.latLng.lng();
+        geoMarker.setPosition({ lat, lng });
+        updateInputs(lat, lng);
+        reverseGeocode({ lat, lng });
+      });
+
+      updateInputs(defaultLoc.lat, defaultLoc.lng);
+      reverseGeocode(defaultLoc);
+    }
+  </script>
+
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBVwNA-qXTdffMhWW8YsclY5_Z9ZwKffKE&libraries=places&callback=initMap">
+  </script>
+</body>
+</html>

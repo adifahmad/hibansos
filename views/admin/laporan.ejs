@@ -1,0 +1,106 @@
+<%- include('../partials/header', { title: "Laporan & Statistik" , user }) %>
+
+  <div id="layoutSidenav_nav">
+    <nav class="sb-sidenav accordion spotify-green">
+      <div class="sb-sidenav-menu">
+        <%- include('../partials/menu/admin') %>
+      </div>
+    </nav>
+  </div>
+
+  <div id="layoutSidenav_content">
+    <main>
+      <div class="container-fluid px-4 mt-4">
+
+        <h1 class="fw-bold mb-3">Laporan Pengajuan</h1>
+
+        <div class="card shadow-sm">
+          <div class="card-body">
+
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Bulan</th>
+                  <th>Total Pengajuan</th>
+                  <th style="width:160px">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% stats.forEach(s=> { %>
+                  <tr onclick="window.location.href='/users/admin/laporan/<%= s.bulan_key %>'" style="cursor:pointer">
+
+                    <td>
+                      <%= s.bulan_label %>
+                    </td>
+                    <td>
+                      <%= s.total %>
+                    </td>
+                    <td class="text-center">
+                      <span class="badge bg-info">
+                        <i class="fas fa-route"></i> Tracking
+                      </span>
+                    </td>
+
+                  </tr>
+                  <% }) %>
+              </tbody>
+
+            </table>
+
+            <button class="btn btn-outline-success mt-3">
+              Export Excel (soon)
+            </button>
+
+          </div>
+        </div>
+        <hr class="my-4">
+
+        <div class="row">
+
+          <!-- KIRI: TRACKING -->
+          <div class="col-md-7">
+            <%- include('../partials/tracking/timeline') %>
+          </div>
+
+          <!-- KANAN: DETAIL -->
+          <div class="col-md-5">
+            <%- include('../partials/tracking/detail') %>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+    <script>
+      async function loadTracking(appId) {
+        const res = await fetch(`/users/admin/tracking/${appId}`);
+        const data = await res.json();
+
+        document.querySelectorAll('.tracking-step')
+          .forEach(el => el.classList.remove('active', 'done'));
+
+        function mark(step, time) {
+          const el = document.querySelector(`[data-step="${step}"]`);
+          if (!el) return;
+          el.classList.add('done', 'active');
+          el.querySelector('.tracking-time').innerText =
+            time ? new Date(time).toLocaleString('id-ID') : '-';
+        }
+
+        if (data.submission_date) mark('submitted', data.submission_date);
+        if (data.reviewed_at) mark('review', data.reviewed_at);
+        if (data.evaluated_at) mark('evaluation', data.evaluated_at);
+        if (data.status === 'approved' || data.status === 'rejected') {
+          mark('final', data.evaluated_at);
+        }
+
+        // DETAIL KANAN
+        document.getElementById('trackingDetail').innerHTML = `
+    <p><b>Judul:</b> ${data.title}</p>
+    <p><b>Status:</b> ${data.status}</p>
+  `;
+      }
+    </script>
+
+    <%- include('../partials/footer') %>
+  </div>

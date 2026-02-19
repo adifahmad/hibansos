@@ -1,0 +1,122 @@
+<%- include('../partials/header', { title: "Legalitas Lembaga", user }) %>
+
+<div id="layoutSidenav_nav">
+  <nav class="sb-sidenav accordion spotify-green">
+    <div class="sb-sidenav-menu">
+      <%- include(`../partials/menu/${user.role}`) %>
+    </div>
+  </nav>
+</div>
+
+<div id="layoutSidenav_content">
+  <main>
+    <div class="container-fluid px-4 mt-4">
+
+      <h1 class="fw-bold mb-2">Legalitas Lembaga</h1>
+      <p class="text-muted mb-4">
+        Lengkapi data legalitas lembaga untuk verifikasi administrasi.
+        <br>
+        <small>Legalitas wajib disetujui sebelum pengajuan hibah dapat disubmit.</small>
+      </p>
+
+      <form action="/users/pemohon/legalitas" method="POST" enctype="multipart/form-data">
+
+        <!-- ================= A. AKTA ================= -->
+        <div class="mb-5">
+          <h5 class="fw-bold mb-3">A. Akta & Pengesahan</h5>
+
+          <div class="mb-3">
+            <label class="form-label">Nomor Akta</label>
+            <input type="text" name="deed_number" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Tanggal Akta</label>
+            <input type="date" name="deed_date" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Nama Notaris</label>
+            <input type="text" name="notary_name" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Nomor SK Kemenkumham</label>
+            <input type="text" name="kemenkumham_sk_number" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Tanggal SK</label>
+            <input type="date" name="kemenkumham_sk_date" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Upload Akta (PDF)</label>
+            <input type="file" name="akta_file" accept="application/pdf" class="form-control">
+          </div>
+        </div>
+
+        <!-- ================= B. NIB ================= -->
+        <div class="mb-5">
+          <h5 class="fw-bold mb-3">B. Nomor Induk Berusaha (NIB)</h5>
+
+          <div class="mb-3">
+            <label class="form-label">Nomor NIB</label>
+            <input type="text" name="nib" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Tanggal Terbit NIB</label>
+            <input type="date" name="nib_issue_date" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Status OSS</label>
+            <select name="oss_status" class="form-select">
+              <option value="aktif">Aktif</option>
+              <option value="tidak_aktif">Tidak Aktif</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Upload NIB (PDF)</label>
+            <input type="file" name="nib_file" accept="application/pdf" class="form-control">
+          </div>
+        </div>
+
+        <!-- ================= C. NPWP ================= -->
+        <div class="mb-5">
+          <h5 class="fw-bold mb-3">C. NPWP Badan</h5>
+
+          <div class="mb-3">
+            <label class="form-label">Nomor NPWP</label>
+            <input type="text" name="npwp" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Status NPWP</label>
+            <select name="npwp_status" class="form-select">
+              <option value="aktif">Aktif</option>
+              <option value="non_aktif">Non Aktif</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Upload NPWP (PDF)</label>
+            <input type="file" name="npwp_file" accept="application/pdf" class="form-control">
+          </div>
+        </div>
+
+        <hr class="mb-4">
+
+        <button class="btn btn-primary px-4">
+          <i class="fas fa-save me-1"></i> Simpan Legalitas
+        </button>
+
+      </form>
+
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+</div>

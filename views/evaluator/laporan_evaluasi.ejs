@@ -1,0 +1,74 @@
+<%- include('../partials/header', { title: 'Laporan Evaluasi', user }) %>
+
+<div id="layoutSidenav_nav">
+  <nav class="sb-sidenav accordion spotify-green">
+    <div class="sb-sidenav-menu">
+      <%- include(`../partials/menu/${user.role}`) %>
+    </div>
+  </nav>
+</div>
+
+<div id="layoutSidenav_content">
+  <main>
+    <div class="container-fluid px-4 mt-4">
+
+      <h1 class="fw-bold">Laporan Evaluasi</h1>
+      <p class="text-muted">Ringkasan hasil evaluasi proposal.</p>
+
+      <a href="/users/evaluator/laporan/export"
+         class="btn btn-success mb-3">
+        <i class="fas fa-download"></i> Export CSV
+      </a>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-0">
+
+          <table class="table table-bordered table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Judul</th>
+                <th>Kategori</th>
+                <th>Dana</th>
+                <th>Skor</th>
+                <th>Rekomendasi</th>
+                <th>Tanggal</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <% if (data.length === 0) { %>
+                <tr>
+                  <td colspan="6" class="text-center text-muted py-4">
+                    Belum ada data evaluasi
+                  </td>
+                </tr>
+              <% } %>
+
+              <% data.forEach(e => { %>
+                <tr>
+                  <td><%= e.title %></td>
+                  <td><%= e.category %></td>
+                  <td>Rp <%= Number(e.request_amount).toLocaleString('id-ID') %></td>
+                  <td><%= e.score %></td>
+                  <td>
+                    <span class="badge <%= e.recommendation === 'approve' ? 'bg-success' : 'bg-danger' %>">
+                      <%= e.recommendation %>
+                    </span>
+                  </td>
+                  <td>
+                    <%= new Date(e.evaluated_at).toLocaleDateString('id-ID') %>
+                  </td>
+                </tr>
+              <% }) %>
+
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+</div>

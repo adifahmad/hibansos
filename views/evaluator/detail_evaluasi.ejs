@@ -1,0 +1,178 @@
+<%- include('../partials/header', { title: "Detail Evaluasi" , user: user }) %>
+
+  <div id="layoutSidenav_nav">
+    <nav class="sb-sidenav accordion spotify-green">
+      <div class="sb-sidenav-menu">
+        <%- include('../partials/menu/' + user.role) %>
+      </div>
+    </nav>
+  </div>
+
+  <div id="layoutSidenav_content">
+    <main>
+      <div class="container-fluid px-4 mt-4">
+
+        <h1 class="fw-bold mb-2">Detail Evaluasi</h1>
+        <p class="text-muted mb-4">
+          Berikan penilaian akhir terhadap proposal hibah.
+        </p>
+
+        <!-- ================= DETAIL PROPOSAL ================= -->
+
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+
+            <h5 class="fw-bold">
+              <%= data.title %>
+            </h5>
+
+            <p><strong>Pemohon:</strong>
+              <%= data.pemohon_name %>
+            </p>
+            <p><strong>Kategori:</strong>
+              <%= data.category %>
+            </p>
+
+            <p>
+              <strong>Dana Diajukan:</strong><br>
+              Rp <%= Number(data.request_amount || 0).toLocaleString('id-ID') %>
+            </p>
+
+            <p>
+              <strong>Dana Disetujui Reviewer:</strong><br>
+              Rp <%= Number(data.approved_amount || 0).toLocaleString('id-ID') %>
+            </p>
+
+            <hr>
+
+            <p><strong>Deskripsi:</strong></p>
+            <p>
+              <%= data.description %>
+            </p>
+
+            <hr>
+
+            <p>
+              <strong>Penerima Manfaat:</strong><br>
+              <%= data.beneficiaries_count || 0 %> Orang
+            </p>
+
+            <p>
+              <strong>Lokasi Detail:</strong><br>
+              <%= data.location_detail || '-' %>
+            </p>
+
+            <% if (data.latitude && data.longitude) { %>
+              <div class="mt-2">
+                <iframe width="100%" height="250" style="border:0; border-radius:8px" loading="lazy"
+                  src="https://www.google.com/maps?q=<%= data.latitude %>,<%= data.longitude %>&hl=id&z=15&output=embed">
+                </iframe>
+              </div>
+              <% } %>
+
+                <% if (photos && photos.length> 0) { %>
+                  <hr>
+                  <p class="fw-bold mt-3">Foto Kegiatan</p>
+                  <div class="row">
+                    <% photos.forEach(photo=> { %>
+                      <div class="col-md-6 mb-3">
+                        <img src="/uploads/<%= photo.photo_path %>" class="img-fluid rounded shadow-sm"
+                          style="height:200px; object-fit:cover; width:100%;">
+                      </div>
+                      <% }) %>
+                  </div>
+                  <% } %>
+
+                    <hr>
+
+                    <p class="fw-bold">Dokumen Pendukung</p>
+
+                    <% if (data.documents && data.documents.length> 0) { %>
+                      <% data.documents.forEach(doc=> { %>
+                        <a href="/uploads/<%= doc.file_path %>" target="_blank"
+                          class="btn btn-outline-primary btn-sm d-block mb-2">
+                          <i class="fas fa-file"></i>
+                          <%= doc.file_name %>
+                        </a>
+                        <% }) %>
+                          <% } else { %>
+                            <span class="text-muted fst-italic">
+                              Tidak ada dokumen terlampir
+                            </span>
+                            <% } %>
+
+          </div>
+        </div>
+
+        <!-- ================= FORM EVALUATOR ================= -->
+
+        <div class="card shadow-sm">
+          <div class="card-body">
+
+            <form method="POST" action="/users/evaluator/pengajuan/<%= data.application_id %>/evaluasi">
+
+              <div class="mb-3">
+                <label class="form-label fw-bold">Skor (1–10)</label>
+                <input type="number" name="score" min="1" max="10" class="form-control" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-bold">Rekomendasi</label>
+                <select name="recommendation" id="recommendationSelect" class="form-select" required>
+                  <option value="">-- Pilih --</option>
+                  <option value="approve">Approve</option>
+                  <option value="reject">Reject</option>
+                </select>
+              </div>
+
+              <!-- MUNCUL HANYA JIKA APPROVE -->
+              <div class="mb-3" id="approvedAmountWrapper" style="display:none;">
+                <label class="form-label fw-bold">
+                  Dana Disetujui Evaluator (Rp)
+                </label>
+                <input type="number" name="approved_amount" id="approvedAmountInput" class="form-control"
+                  placeholder="Masukkan dana final yang disetujui">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-bold">Catatan Evaluasi</label>
+                <textarea name="evaluation_notes" class="form-control" rows="4"></textarea>
+              </div>
+
+              <button class="btn btn-success fw-bold me-2">
+                <i class="fas fa-save"></i> Simpan Evaluasi
+              </button>
+
+              <a href="/users/evaluator/pengajuan" class="btn btn-secondary">
+                Kembali
+              </a>
+
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ================= SCRIPT TOGGLE ================= -->
+
+    <script>
+      const select = document.getElementById("recommendationSelect");
+      const wrapper = document.getElementById("approvedAmountWrapper");
+      const input = document.getElementById("approvedAmountInput");
+
+      select.addEventListener("change", function () {
+        if (this.value === "approve") {
+          wrapper.style.display = "block";
+          input.required = true;
+        } else {
+          wrapper.style.display = "none";
+          input.required = false;
+          input.value = "";
+        }
+      });
+    </script>
+
+    <%- include('../partials/footer') %>
+  </div>

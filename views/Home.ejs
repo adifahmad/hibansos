@@ -1,0 +1,101 @@
+<%- include("partials/header", { title: "Dashboard", user }) %>
+
+<!-- SIDEBAR -->
+<div id="layoutSidenav_nav">
+    <nav class="sb-sidenav accordion spotify-green" id="sidenavAccordion">
+
+        <div class="sb-sidenav-menu">
+            <%- include(`partials/menu/${user.role}`) %>
+        </div>
+
+        <div class="sb-sidenav-footer">
+            <div class="small">Logged in as:</div>
+            <%= user.role %>
+        </div>
+
+    </nav>
+</div>
+
+<!-- CONTENT AREA -->
+<div id="layoutSidenav_content">
+    <main>
+        <div class="container-fluid px-4">
+
+            <h1 class="mt-4">Dashboard</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item active">
+                    <%= user.role.toUpperCase() %> Dashboard
+                </li>
+            </ol>
+
+            <!-- CARD SECTION -->
+            <div class="row">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <i class="fas fa-user-check fa-2x me-3"></i>
+                            <span class="fw-bold">97% Penerima</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card bg-warning text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <i class="fas fa-user-clock fa-2x me-3"></i>
+                            <span class="fw-bold">6% Belum Menerima</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <i class="fas fa-user-shield fa-2x me-3"></i>
+                            <span class="fw-bold">76% Sudah Menerima</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card bg-danger text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <i class="fas fa-triangle-exclamation fa-2x me-3"></i>
+                            <span class="fw-bold">15% Belum disalurkan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHARTS -->
+            <div class="row">
+                <div class="col-xl-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-chart-area me-1"></i>
+                            Total Revenue Bansos
+                        </div>
+                        <div class="card-body">
+                            <canvas id="myAreaChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-chart-bar me-1"></i>
+                            Total Pengajuan Bansos Perbulan
+                        </div>
+                        <div class="card-body">
+                            <canvas id="myBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+<%- include("partials/footer") %>
+

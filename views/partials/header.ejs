@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>
+        <%= title %>
+    </title>
+
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js"></script>
+
+    <link href="/stylesheets/css/styles2.css" rel="stylesheet" />
+</head>
+
+<body class="sb-nav-fixed">
+
+    <nav class="sb-topnav navbar navbar-expand navbar-dark spotify-green">
+
+        <a class="navbar-brand ps-3" href="#">
+            <img src="/images/download.svg" alt="Logo" style="height: 45px;">
+        </a>
+
+        <button class="btn btn-link btn-sm me-4" id="sidebarToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <form class="d-none d-md-inline-block form-inline ms-auto me-md-3 my-2">
+            <div class="input-group">
+                <input class="form-control" type="text" placeholder="Search..." />
+                <button class="btn spotify-green-btn" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+
+        <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
+
+            <!-- 🔔 NOTIFICATION -->
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+
+                    <span class="notif-wrapper">
+                        <i class="fas fa-bell"></i>
+
+                        <% if (notifications && notifications.some(n=> !n.is_read)) { %>
+                            <span class="notif-badge">
+                                <%= notifications.filter(n=> !n.is_read).length %>
+                            </span>
+                            <% } %>
+                    </span>
+
+                </a>
+
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-notif">
+
+                    <% if (!notifications || notifications.length===0) { %>
+                        <li class="dropdown-item text-muted">Tidak ada notifikasi</li>
+                        <% } %>
+
+                            <% notifications.forEach(n=> { %>
+                                <li class="notif-item">
+                                    <a href="<%= n.link || '#' %>"
+                                        class="dropdown-item <%= n.is_read ? '' : 'fw-bold' %>"
+                                        data-id="<%= n.notification_id %>" onclick="markNotifRead(this)">
+
+                                        <div class="notif-title">
+                                            <%= n.title %>
+                                        </div>
+                                        <div class="notif-message">
+                                            <%= n.message %>
+                                        </div>
+
+                                    </a>
+                                </li>
+                                <% }) %>
+
+                </ul>
+            </li>
+
+            <!-- 👤 USER -->
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-user fa-fw"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="/users/<%= user.role %>/profile">
+                            Profile
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="/logout">Logout</a>
+                    </li>
+                </ul>
+            </li>
+
+        </ul>
+    </nav>
+    <script>
+        function markNotifRead(el) {
+            const id = el.dataset.id;
+            if (!id) return;
+
+            fetch('/users/notifications/' + id + '/read', {
+                method: 'POST'
+            }).catch(err => console.error(err));
+        }
+    </script>
+</body>
+<!-- MAIN WRAPPER -->
+<div id="layoutSidenav">

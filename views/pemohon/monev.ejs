@@ -1,0 +1,176 @@
+<%- include('../partials/header', { title: "Monitoring & Evaluasi" , user: user }) %>
+
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green">
+            <div class="sb-sidenav-menu">
+                <%- include('../partials/menu/' + user.role) %>
+            </div>
+        </nav>
+    </div>
+
+    <div id="layoutSidenav_content">
+        <main>
+            <div class="container-fluid px-4">
+
+                <h1 class="mt-4 fw-bold">Monitoring & Evaluasi</h1>
+                <p class="text-muted">
+                    Pantau perkembangan pendanaan setiap pengajuan Anda.
+                </p>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-chart-line me-1"></i>
+                        Monitoring Dana
+                    </div>
+
+                    <div class="card-body">
+                        <table class="table table-bordered table-striped align-middle">
+                            <thead>
+
+                                <!-- Grouping -->
+                                <tr>
+                                    <th rowspan="2" class="text-center align-middle">Judul</th>
+                                    <th rowspan="2" class="text-center align-middle">Diajukan<br><small>(Rp)</small>
+                                    </th>
+
+                                    <th colspan="3" class="text-center">Reviewer</th>
+                                    <th colspan="3" class="text-center">Evaluator</th>
+
+                                    <th rowspan="2" class="text-center align-middle" style="min-width:200px;">Progress
+                                    </th>
+                                    <th rowspan="2" class="text-center align-middle">Status</th>
+                                </tr>
+
+                                <!-- Detail -->
+                                <tr>
+                                    <th class="text-center">Disetujui<br><small>(Rp)</small></th>
+                                    <th class="text-center">Selisih<br><small>(Rp)</small></th>
+                                    <th class="text-center align-middle" style="width:120px;">Catatan</th>
+
+                                    <th class="text-center">Disetujui<br><small>(Rp)</small></th>
+                                    <th class="text-center">Selisih<br><small>(Rp)</small></th>
+                                    <th class="text-center align-middle" style="width:120px;">Catatan</th>
+                                </tr>
+
+                            </thead>
+                            <tbody>
+
+                                <% if (data && data.length> 0) { %>
+
+                                    <% for (var i=0; i < data.length; i++) { var p=data[i]; var
+                                        diajukan=Number(p.request_amount || 0); var
+                                        reviewerSetuju=Number(p.reviewer_amount || 0); var
+                                        evaluatorSetuju=Number(p.evaluator_amount || 0); var selisihReviewer=diajukan -
+                                        reviewerSetuju; var selisihEvaluator=diajukan - evaluatorSetuju; var
+                                        finalDana=evaluatorSetuju> 0 ? evaluatorSetuju : reviewerSetuju;
+
+                                        var progress = 0;
+                                        var progressClass = "bg-secondary";
+                                        var label = "Menunggu Review";
+                                        var badge = "bg-info";
+
+                                        if (p.review_status === 'rejected') {
+                                        progress = 100;
+                                        progressClass = "bg-danger";
+                                        label = "Ditolak Reviewer";
+                                        badge = "bg-danger";
+                                        }
+                                        else if (p.review_status === 'approved' && !p.recommendation) {
+                                        progress = 70;
+                                        progressClass = "bg-warning";
+                                        label = "Menunggu Evaluasi";
+                                        badge = "bg-warning text-dark";
+                                        }
+                                        else if (p.recommendation === 'reject') {
+                                        progress = 100;
+                                        progressClass = "bg-danger";
+                                        label = "Ditolak Evaluator";
+                                        badge = "bg-danger";
+                                        }
+                                        else if (p.recommendation === 'approve') {
+                                        progress = 100;
+                                        progressClass = "bg-success";
+                                        label = "Disetujui";
+                                        badge = "bg-success";
+                                        }
+                                        else {
+                                        progress = 30;
+                                        progressClass = "bg-primary";
+                                        label = "Menunggu Review";
+                                        badge = "bg-primary";
+                                        }
+                                        %>
+
+                                        <tr>
+
+                                            <td>
+                                                <%= p.title %>
+                                            </td>
+
+                                            <td>
+                                                <%= diajukan.toLocaleString('id-ID') %>
+                                            </td>
+
+                                            <!-- REVIEWER -->
+                                            <td>
+                                                <%= reviewerSetuju.toLocaleString('id-ID') %>
+                                            </td>
+                                            <td>
+                                                <%= selisihReviewer.toLocaleString('id-ID') %>
+                                            </td>
+                                            <td style="max-width:120px; white-space:normal; word-break:break-word;">
+                                                <%= p.review_comments || '-' %>
+                                            </td>
+
+                                            <!-- EVALUATOR -->
+                                            <td>
+                                                <%= evaluatorSetuju.toLocaleString('id-ID') %>
+                                            </td>
+                                            <td>
+                                                <%= selisihEvaluator.toLocaleString('id-ID') %>
+                                            </td>
+                                            <td style="max-width:120px; white-space:normal; word-break:break-word;">
+                                                <%= p.evaluation_notes || '-' %>
+                                            </td>
+
+                                            <!-- PROGRESS -->
+                                            <td>
+                                                <div class="progress">
+                                                    <div class="progress-bar <%= progressClass %>" role="progressbar"
+                                                        style="width:<%= progress %>%">
+                                                        <%= progress %>%
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <!-- STATUS -->
+                                            <td>
+                                                <span class="badge <%= badge %> px-3 py-2">
+                                                    <%= label %>
+                                                </span>
+                                            </td>
+
+                                        </tr>
+
+                                        <% } %>
+
+                                            <% } else { %>
+
+                                                <tr>
+                                                    <td colspan="10" class="text-center text-muted py-4">
+                                                        Tidak ada data monitoring
+                                                    </td>
+                                                </tr>
+
+                                                <% } %>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <%- include('../partials/footer') %>
+    </div>

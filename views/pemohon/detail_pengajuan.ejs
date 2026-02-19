@@ -1,0 +1,191 @@
+<%- include('../partials/header', { title: "Detail Pengajuan" , user }) %>
+
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green">
+            <div class="sb-sidenav-menu">
+                <%- include(`../partials/menu/${user.role}`) %>
+            </div>
+        </nav>
+    </div>
+
+    <% let statusLabel='Draft' ; if (data.status==='draft' ) { statusLabel='Draft' ; } else if
+        (data.status==='submitted' && !review) { statusLabel='Menunggu Review' ; } else if (review &&
+        review.review_status==='approved' && !evaluation) { statusLabel='Menunggu Evaluasi' ; } else if (review &&
+        review.review_status==='rejected' ) { statusLabel='Ditolak (Reviewer)' ; } else if (evaluation &&
+        evaluation.recommendation==='approve' ) { statusLabel='Disetujui' ; } else if (evaluation &&
+        evaluation.recommendation==='reject' ) { statusLabel='Ditolak (Evaluator)' ; } %>
+
+
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4 mt-4">
+
+                    <h1 class="fw-bold mb-3">Detail Pengajuan</h1>
+
+                    <div class="row">
+
+                        <div class="col-lg-8">
+
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-body">
+                                    <h4 class="fw-bold">
+                                        <%= data.title %>
+                                    </h4>
+
+                                    <p class="text-muted mb-2">
+                                        Kategori: <b>
+                                            <%= data.category %>
+                                        </b>
+                                    </p>
+
+                                    <p>
+                                        <strong>Dana Diajukan:</strong><br>
+                                        Rp <%= Number(data.request_amount).toLocaleString('id-ID') %>
+                                    </p>
+
+                                    <hr>
+
+                                    <p><strong>Deskripsi:</strong></p>
+                                    <p>
+                                        <%= data.description %>
+                                    </p>
+
+                                    <hr>
+
+                                    <p>
+                                        <strong>Penerima Manfaat:</strong><br>
+                                        <%= data.beneficiaries_count || 0 %> Orang
+                                    </p>
+
+                                    <p>
+                                        <strong>Lokasi Detail:</strong><br>
+                                        <%= data.location_detail || '-' %>
+                                    </p>
+
+                                    <% if (data.latitude && data.longitude) { %>
+                                        <div class="mt-2">
+                                            <iframe width="100%" height="250" style="border:0; border-radius:8px"
+                                                loading="lazy" allowfullscreen
+                                                src="https://www.google.com/maps?q=<%= data.latitude %>,<%= data.longitude %>&hl=id&z=15&output=embed">
+                                            </iframe>
+                                        </div>
+                                        <% } %>
+
+                                            <% if (photos && photos.length> 0) { %>
+
+                                                <hr>
+
+                                                <p class="fw-bold mt-3">Foto Kegiatan</p>
+
+                                                <div class="row">
+                                                    <% photos.forEach(photo=> { %>
+                                                        <div class="col-md-6 mb-3">
+                                                            <img src="/uploads/<%= photo.photo_path %>"
+                                                                class="img-fluid rounded shadow-sm"
+                                                                style="height:200px; object-fit:cover; width:100%;">
+                                                        </div>
+                                                        <% }) %>
+                                                </div>
+
+                                                <% } %>
+
+                                                    <p class="fw-bold mt-3">Dokumen terlampir</p>
+
+                                                    <% if (data.documents && data.documents.length> 0) { %>
+                                                        <% data.documents.forEach(doc=> { %>
+                                                            <a href="/uploads/<%= doc.file_path %>" target="_blank"
+                                                                class="btn btn-outline-primary btn-sm d-block mb-2">
+                                                                <i class="fas fa-file"></i>
+                                                                <%= doc.file_name %>
+                                                            </a>
+                                                            <% }) %>
+                                                                <% } else { %>
+                                                                    <span class="text-muted fst-italic">Tidak ada
+                                                                        dokumen
+                                                                        terlampir</span>
+                                                                    <% } %>
+
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="col-lg-4">
+
+                            <div class="card shadow-sm mb-3">
+                                <div class="card-header fw-bold">Status Pengajuan</div>
+                                <div class="card-body text-center">
+
+                                    <span class="badge fs-6 px-3 py-2
+  <%= statusLabel.includes('Ditolak') ? 'bg-danger'
+    : statusLabel.includes('Disetujui') ? 'bg-success'
+    : statusLabel.includes('Menunggu') ? 'bg-warning text-dark'
+    : 'bg-secondary' %>">
+                                        <%= statusLabel %>
+                                    </span>
+
+
+                                    <div class="text-muted small mt-3">
+                                        Tanggal Submit:<br>
+                                        <%= data.submission_date ? new
+                                            Date(data.submission_date).toLocaleDateString('id-ID') : '-' %>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <div class="card shadow-sm mb-3">
+                                <div class="card-header fw-bold">Catatan Reviewer</div>
+                                <div class="card-body">
+                                    <% if (review) { %>
+                                        <p class="mb-0">
+                                            <%= review.comments %>
+                                        </p>
+                                        <% } else { %>
+                                            <p class="text-muted mb-0">Belum ada catatan reviewer</p>
+                                            <% } %>
+                                </div>
+                            </div>
+
+                            <div class="card shadow-sm">
+                                <div class="card-header fw-bold">Hasil Evaluasi</div>
+                                <div class="card-body">
+                                    <% if (evaluation) { %>
+
+                                        <p>
+                                            <strong>Skor:</strong>
+                                            <span class="badge bg-primary">
+                                                <%= evaluation.score %>/10
+                                            </span>
+                                        </p>
+
+                                        <p>
+                                            <strong>Rekomendasi:</strong>
+                                            <span class="badge
+                    <%= evaluation.recommendation === 'approve'
+                      ? 'bg-success'
+                      : 'bg-danger' %>">
+                                                <%= evaluation.recommendation %>
+                                            </span>
+                                        </p>
+
+                                        <p class="mb-0">
+                                            <strong>Catatan:</strong><br>
+                                            <%= evaluation.evaluation_notes || '-' %>
+                                        </p>
+
+                                        <% } else { %>
+                                            <p class="text-muted mb-0">Belum ada evaluasi</p>
+                                            <% } %>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </main>
+
+            <%- include('../partials/footer') %>
+        </div>

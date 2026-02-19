@@ -1,0 +1,88 @@
+<%- include('../partials/header', { title: "Detail Legalitas" , user }) %>
+
+    <div id="layoutSidenav">
+
+        <div id="layoutSidenav_nav">
+            <nav class="sb-sidenav accordion spotify-green">
+                <div class="sb-sidenav-menu">
+                    <%- include('../partials/menu/admin') %>
+                </div>
+            </nav>
+        </div>
+
+        <div id="layoutSidenav_content">
+            <main class="admin-legalitas-page">
+                <div class="card shadow-sm legalitas-list-card">
+                    <div class="container-fluid px-4 mt-4">
+
+                        <h1 class="fw-bold">Detail Legalitas</h1>
+
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <p><b>Nama:</b>
+                                    <%= data.name %>
+                                </p>
+                                <p><b>Organisasi:</b>
+                                    <%= data.organization %>
+                                </p>
+                                <p><b>Nomor Akta:</b>
+                                    <%= data.deed_number || '-' %>
+                                </p>
+                                <p><b>NIB:</b>
+                                    <%= data.nib || '-' %>
+                                </p>
+                                <p><b>NPWP:</b>
+                                    <%= data.npwp || '-' %>
+                                </p>
+
+                                <p>
+                                    <b>Status:</b>
+                                    <span class="badge
+                <%= data.verification_status === 'approved'
+                  ? 'bg-success'
+                  : data.verification_status === 'rejected'
+                  ? 'bg-danger'
+                  : 'bg-warning text-dark' %>">
+                                        <%= data.verification_status %>
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body">
+
+                                <form method="POST" action="/users/admin/legalitas/<%= data.legality_id %>/verifikasi">
+
+                                    <div class="mb-3">
+                                        <label class="fw-bold">Status Verifikasi</label>
+                                        <select name="verification_status" class="form-select" required>
+                                            <option value="">-- Pilih --</option>
+                                            <option value="approved">Approve</option>
+                                            <option value="rejected">Reject</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="fw-bold">Catatan Admin</label>
+                                        <textarea name="verification_notes" class="form-control" rows="3"></textarea>
+                                    </div>
+
+                                    <button class="btn btn-success fw-bold">
+                                        Simpan Verifikasi
+                                    </button>
+
+                                    <a href="/users/admin/legalitas" class="btn btn-secondary ms-2">
+                                        Kembali
+                                    </a>
+
+                                </form>
+
+                            </div>
+                        </div>
+
+                    </div>
+            </main>
+        </div>
+    </div>
+    </div>

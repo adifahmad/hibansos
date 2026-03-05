@@ -11621,3 +11621,119 @@ body {
   overflow-x: hidden;
   width: 300px;
 }
+
+.dashboard-page #layoutSidenav_content .container-fluid {
+    max-width: 100% !important;
+    width: 1300px;
+}
+
+/* Biar card gak ketarik */
+.chart-card {
+    height: auto;
+}
+
+/* Area chart tinggi fix */
+.chart-wrapper {
+    height: 280px;
+}
+
+/* Donut biar bulat */
+.chart-wrapper-donut {
+    width: 280px;
+    height: 280px;
+}
+
+/* Biar canvas gak aneh */
+.chart-wrapper canvas,
+.chart-wrapper-donut canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.dashboard-card {
+    border-radius: 12px;
+}
+
+.icon-box {
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.gradient-card {
+    padding: 25px;
+    border-radius: 16px;
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+    transition: 0.2s ease;
+}
+
+.gradient-card:hover {
+    transform: translateY(-4px);
+}
+
+.gradient-card h3 {
+    font-weight: 700;
+    margin: 0;
+}
+
+.card-title {
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.icon-circle {
+    width: 48px;
+    height: 48px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    font-size: 20px;
+}
+
+/* Gradient colors */
+.bg-blue {
+    background: linear-gradient(135deg, #2f80ed, #1e66dc);
+}
+
+.bg-yellow {
+    background: linear-gradient(135deg, #f6c23e, #f4b400);
+}
+
+.bg-green {
+    background: linear-gradient(135deg, #1cc88a, #17a673);
+}
+
+.bg-red {
+    background: linear-gradient(135deg, #e74a3b, #d63031);
+}
+
+.bg-purple {
+    background: linear-gradient(135deg, #8e44ad, #6c3483);
+}
+
+.chart-wrapper-line,
+.chart-wrapper-bar {
+    width: 100%;
+    max-width: 520px;
+    height: 280px;
+}
+
+.chart-wrapper-donut {
+    width: 280px;
+    height: 280px;
+}
+
+.chart-wrapper-line canvas,
+.chart-wrapper-bar canvas,
+.chart-wrapper-donut canvas {
+    width: 100% !important;
+    height: 100% !important;
+}

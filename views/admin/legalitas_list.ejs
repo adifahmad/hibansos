@@ -19,33 +19,56 @@
 
                         <div class="card mb-4">
                             <div class="card-body">
+
                                 <p><b>Nama:</b>
                                     <%= data.name %>
                                 </p>
+
                                 <p><b>Organisasi:</b>
                                     <%= data.organization %>
                                 </p>
+
                                 <p><b>Nomor Akta:</b>
                                     <%= data.deed_number || '-' %>
                                 </p>
+
                                 <p><b>NIB:</b>
                                     <%= data.nib || '-' %>
                                 </p>
+
                                 <p><b>NPWP:</b>
                                     <%= data.npwp || '-' %>
                                 </p>
 
+                                <!-- 🔹 TAMBAHAN ALAMAT -->
                                 <p>
-                                    <b>Status:</b>
-                                    <span class="badge
-                <%= data.verification_status === 'approved'
-                  ? 'bg-success'
-                  : data.verification_status === 'rejected'
-                  ? 'bg-danger'
-                  : 'bg-warning text-dark' %>">
-                                        <%= data.verification_status %>
-                                    </span>
+                                    <b>Alamat Lengkap:</b><br>
+                                    <%= data.address || '-' %>
                                 </p>
+
+                                <!-- 🔹 TAMBAHAN PETA -->
+                                <% if (data.latitude && data.longitude) { %>
+                                    <div class="mt-3">
+                                        <b>Lokasi Peta:</b>
+                                        <iframe width="100%" height="250" style="border:0; border-radius:8px"
+                                            loading="lazy"
+                                            src="https://www.google.com/maps?q=<%= data.latitude %>,<%= data.longitude %>&hl=id&z=15&output=embed">
+                                        </iframe>
+                                    </div>
+                                    <% } %>
+
+                                        <p class="mt-3">
+                                            <b>Status:</b>
+                                            <span class="badge
+                                    <%= data.verification_status === 'approved'
+                                      ? 'bg-success'
+                                      : data.verification_status === 'rejected'
+                                      ? 'bg-danger'
+                                      : 'bg-warning text-dark' %>">
+                                                <%= data.verification_status %>
+                                            </span>
+                                        </p>
+
                             </div>
                         </div>
 
@@ -84,5 +107,4 @@
                     </div>
             </main>
         </div>
-    </div>
     </div>

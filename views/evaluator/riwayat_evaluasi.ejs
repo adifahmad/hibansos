@@ -25,6 +25,8 @@
                                 <tr>
                                     <th>Judul</th>
                                     <th>Kategori</th>
+                                    <th>Dana (Rp)</th> <!-- TAMBAHAN -->
+                                    <th>Dana Disetujui (Rp)</th> <!-- TAMBAHAN -->
                                     <th>Skor</th>
                                     <th>Rekomendasi</th>
                                     <th>Tanggal</th>
@@ -34,7 +36,7 @@
                             <tbody>
                                 <% if (data.length===0) { %>
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted py-4">
+                                        <td colspan="7" class="text-center text-muted py-4">
                                             <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
                                             Belum ada evaluasi yang dilakukan
                                         </td>
@@ -46,20 +48,33 @@
                                                 <td>
                                                     <%= e.title %>
                                                 </td>
+
                                                 <td>
                                                     <%= e.category %>
                                                 </td>
+
+                                                <!-- TAMBAHAN -->
+                                                <td>
+                                                    <%= Number(e.request_amount || 0).toLocaleString('id-ID') %>
+                                                </td>
+
+                                                <td>
+                                                    <%= Number(e.approved_amount || 0).toLocaleString('id-ID') %>
+                                                </td>
+
                                                 <td class="text-center fw-bold">
                                                     <%= e.score %>
                                                 </td>
+
                                                 <td>
                                                     <span class="badge px-3 py-2
-                      <%= e.recommendation === 'approve'
-                        ? 'bg-success'
-                        : 'bg-danger' %>">
+          <%= e.recommendation === 'approve'
+            ? 'bg-success'
+            : 'bg-danger' %>">
                                                         <%= e.recommendation.toUpperCase() %>
                                                     </span>
                                                 </td>
+
                                                 <td>
                                                     <% if (e.evaluated_at) { %>
                                                         <%= new Date(e.evaluated_at).toLocaleDateString('id-ID') %>

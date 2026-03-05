@@ -1,0 +1,275 @@
+<%- include("../partials/header", { title: "Dashboard Admin" , user }) %>
+
+<div id="layoutSidenav" class="dashboard-page">
+
+    <!-- SIDEBAR -->
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green">
+            <div class="sb-sidenav-menu">
+                <%- include("../partials/menu/" + user.role) %>
+            </div>
+        </nav>
+    </div>
+
+    <!-- CONTENT -->
+    <div id="layoutSidenav_content">
+        <main class="container-fluid px-4 mt-4">
+
+            <h1 class="mt-4">Dashboard Admin</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item active">Monitoring Sistem Hibah</li>
+            </ol>
+
+            <% 
+                const total = Number(stats.total_pengajuan || 0);
+                const disetujui = Number(stats.disetujui || 0);
+                const ditolak = Number(stats.ditolak || 0);
+                const pending = Number(stats.pending || 0);
+
+                const totalLegal = Number(legalitas.total_legalitas || 0);
+                const legalApproved = Number(legalitas.legalitas_disetujui || 0);
+                const legalRejected = Number(legalitas.legalitas_ditolak || 0);
+                const legalPending = Number(legalitas.legalitas_pending || 0);
+            %>
+
+            <!-- ================= SUMMARY CARDS ================= -->
+            <div class="row">
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-blue">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle"><i class="fas fa-folder"></i></div>
+                            <div>
+                                <div class="card-title">Total Pengajuan</div>
+                                <h3><%= total %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-green">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle"><i class="fas fa-check"></i></div>
+                            <div>
+                                <div class="card-title">Disetujui</div>
+                                <h3><%= disetujui %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-red">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle"><i class="fas fa-times"></i></div>
+                            <div>
+                                <div class="card-title">Ditolak</div>
+                                <h3><%= ditolak %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-yellow">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle"><i class="fas fa-hourglass-half"></i></div>
+                            <div>
+                                <div class="card-title">Pending</div>
+                                <h3><%= pending %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= LEGALITAS ================= -->
+            <div class="row">
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-purple">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle"><i class="fas fa-building"></i></div>
+                            <div>
+                                <div class="card-title">Total Legalitas</div>
+                                <h3><%= totalLegal %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-green">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle"><i class="fas fa-check-circle"></i></div>
+                            <div>
+                                <div class="card-title">Legalitas Approved</div>
+                                <h3><%= legalApproved %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-red">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle"><i class="fas fa-times-circle"></i></div>
+                            <div>
+                                <div class="card-title">Legalitas Rejected</div>
+                                <h3><%= legalRejected %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-yellow">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle"><i class="fas fa-clock"></i></div>
+                            <div>
+                                <div class="card-title">Legalitas Pending</div>
+                                <h3><%= legalPending %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= CHART GRID ================= -->
+            <div class="row mt-4">
+
+                <!-- Line -->
+                <div class="col-xl-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header fw-bold">
+                            <i class="fas fa-chart-area me-1"></i>
+                            Pengajuan per Bulan
+                        </div>
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div class="chart-wrapper-line">
+                                <canvas id="monthlyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Donut -->
+                <div class="col-xl-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header fw-bold">
+                            <i class="fas fa-chart-pie me-1"></i>
+                            Distribusi Kategori
+                        </div>
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div class="chart-wrapper-donut">
+                                <canvas id="kategoriChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bar -->
+                <div class="col-xl-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header fw-bold">
+                            <i class="fas fa-chart-bar me-1"></i>
+                            Total Dana Disetujui per Bulan
+                        </div>
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div class="chart-wrapper-bar">
+                                <canvas id="danaChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pie -->
+                <div class="col-xl-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header fw-bold">
+                            <i class="fas fa-users me-1"></i>
+                            Distribusi Status
+                        </div>
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div class="chart-wrapper-donut">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+        <%- include("../partials/footer") %>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const monthly = <%- JSON.stringify(chartData.monthly || []) %>;
+const kategori = <%- JSON.stringify(chartData.kategori || []) %>;
+const danaBulanan = <%- JSON.stringify(chartData.danaBulanan || []) %>;
+const statusDistribusi = <%- JSON.stringify(chartData.statusDistribusi || []) %>;
+
+function baseOptions() {
+    return { responsive: true, maintainAspectRatio: false };
+}
+
+new Chart(document.getElementById("monthlyChart"), {
+    type: 'line',
+    data: {
+        labels: monthly.map(m => m.bulan),
+        datasets: [{
+            label: "Pengajuan",
+            data: monthly.map(m => parseInt(m.total)),
+            borderColor: "#4e73df",
+            backgroundColor: "rgba(78,115,223,0.2)",
+            fill: true
+        }]
+    },
+    options: baseOptions()
+});
+
+new Chart(document.getElementById("kategoriChart"), {
+    type: 'doughnut',
+    data: {
+        labels: kategori.map(k => k.category),
+        datasets: [{
+            data: kategori.map(k => parseInt(k.total)),
+            backgroundColor: ["#4e73df","#1cc88a","#36b9cc","#f6c23e","#e74a3b"]
+        }]
+    },
+    options: baseOptions()
+});
+
+new Chart(document.getElementById("danaChart"), {
+    type: 'bar',
+    data: {
+        labels: danaBulanan.map(d => d.bulan),
+        datasets: [{
+            label: "Total Dana",
+            data: danaBulanan.map(d => parseFloat(d.total_dana)),
+            backgroundColor: "#8e44ad"
+        }]
+    },
+    options: baseOptions()
+});
+
+new Chart(document.getElementById("statusChart"), {
+    type: 'pie',
+    data: {
+        labels: statusDistribusi.map(s => s.status),
+        datasets: [{
+            data: statusDistribusi.map(s => parseInt(s.total)),
+            backgroundColor: ["#1cc88a","#e74a3b","#f6c23e"]
+        }]
+    },
+    options: baseOptions()
+});
+</script>

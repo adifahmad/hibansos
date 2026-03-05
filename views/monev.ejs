@@ -1,9 +1,9 @@
-<%- include('../partials/header', { title: "Monitoring & Evaluasi" , user: user }) %>
+<%- include('partials/header', { title: "Monitoring & Evaluasi" , user: user }) %>
 
     <div id="layoutSidenav_nav">
         <nav class="sb-sidenav accordion spotify-green">
             <div class="sb-sidenav-menu">
-                <%- include('../partials/menu/' + user.role) %>
+                <%- include('partials/menu/' + user.role) %>
             </div>
         </nav>
     </div>
@@ -172,5 +172,5 @@
             </div>
         </main>
 
-        <%- include('../partials/footer') %>
+        <%- include('partials/footer') %>
     </div>

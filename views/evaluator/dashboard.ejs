@@ -1,0 +1,176 @@
+<%- include("../partials/header", { title: "Dashboard Evaluator" , user }) %>
+
+<div id="layoutSidenav" class="dashboard-page">
+
+    <!-- SIDEBAR -->
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green">
+            <div class="sb-sidenav-menu">
+                <%- include("../partials/menu/" + user.role) %>
+            </div>
+        </nav>
+    </div>
+
+    <!-- CONTENT -->
+    <div id="layoutSidenav_content">
+        <main class="container-fluid px-4 mt-4">
+
+            <h1 class="mt-4">Dashboard Evaluator</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item active">Ringkasan Evaluasi</li>
+            </ol>
+
+            <% 
+                const total = Number(stats.total_masuk || 0);
+                const menunggu = Number(stats.menunggu_evaluasi || 0);
+                const disetujui = Number(stats.disetujui || 0);
+                const ditolak = Number(stats.ditolak || 0);
+            %>
+
+            <!-- ================= CARDS ================= -->
+            <div class="row">
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-blue">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle">
+                                <i class="fas fa-folder"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Total Masuk</div>
+                                <h3><%= total %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-yellow">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Menunggu Evaluasi</div>
+                                <h3><%= menunggu %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-green">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Disetujui</div>
+                                <h3><%= disetujui %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="gradient-card bg-red">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle">
+                                <i class="fas fa-times"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Ditolak</div>
+                                <h3><%= ditolak %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= CHARTS ================= -->
+            <div class="row">
+
+                <!-- DISTRIBUSI KEPUTUSAN -->
+                <div class="col-xl-6 mb-4">
+                    <div class="card shadow h-100">
+                        <div class="card-header fw-bold">
+                            <i class="fas fa-chart-pie me-1"></i>
+                            Distribusi Keputusan
+                        </div>
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div style="width:220px;">
+                                <canvas id="distribusiChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOTAL DANA PER BULAN -->
+                <div class="col-xl-6 mb-4">
+                    <div class="card shadow h-100">
+                        <div class="card-header fw-bold">
+                            <i class="fas fa-chart-bar me-1"></i>
+                            Total Dana Disetujui per Bulan
+                        </div>
+                        <div class="card-body">
+                            <canvas id="danaChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+        <%- include("../partials/footer") %>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const distribusi = <%- JSON.stringify(chartData.distribusi || []) %>;
+
+    new Chart(document.getElementById("distribusiChart"), {
+        type: 'doughnut',
+        data: {
+            labels: distribusi.map(d => d.recommendation),
+            datasets: [{
+                data: distribusi.map(d => parseInt(d.total)),
+                backgroundColor: ["#1cc88a", "#e74a3b"]
+            }]
+        },
+        options: {
+            cutout: "65%",
+            plugins: {
+                legend: { position: "bottom" }
+            }
+        }
+    });
+
+    const danaBulanan = <%- JSON.stringify(chartData.danaBulanan || []) %>;
+
+    new Chart(document.getElementById("danaChart"), {
+        type: 'bar',
+        data: {
+            labels: danaBulanan.map(d => d.bulan),
+            datasets: [{
+                label: "Total Dana",
+                data: danaBulanan.map(d => parseFloat(d.total_dana)),
+                backgroundColor: "#8e44ad"
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return "Rp " + value.toLocaleString("id-ID");
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>

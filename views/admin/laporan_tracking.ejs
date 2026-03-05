@@ -1,6 +1,6 @@
-<%- include('../partials/header', { title: "Tracking Pengajuan", user }) %>
+<%- include('../partials/header', { title: "Tracking Pengajuan" , user }) %>
 
-<div id="layoutSidenav_nav">
+  <div id="layoutSidenav_nav">
     <nav class="sb-sidenav accordion spotify-green">
       <div class="sb-sidenav-menu">
         <%- include('../partials/menu/admin') %>
@@ -28,23 +28,34 @@
               </tr>
             </thead>
             <tbody>
-              <% data.forEach(p => { %>
+              <% data.forEach(p=> { %>
                 <tr>
-                  <td><%= p.title %></td>
-                  <td><%= p.name %></td>
                   <td>
-                    <span class="badge bg-info">
-                      <%= p.status %>
-                    </span>
+                    <%= p.title %>
                   </td>
                   <td>
-                    <a href="/users/admin/pengajuan/<%= p.application_id %>/tracking"
-                       class="btn btn-sm btn-success">
+                    <%= p.name %>
+                  </td>
+                  <td>
+                    <% const reviewStatus=(p.review_status || '' ).toLowerCase(); const recommendation=(p.recommendation
+                      || '' ).toLowerCase(); let label="Menunggu Review" ; let badge="bg-info" ; if
+                      (reviewStatus==='rejected' ) { label="Ditolak (Reviewer)" ; badge="bg-danger" ; } else if
+                      (reviewStatus==='approved' && !recommendation) { label="Menunggu Evaluasi" ;
+                      badge="bg-warning text-dark" ; } else if (recommendation==='reject' ) {
+                      label="Ditolak (Evaluator)" ; badge="bg-danger" ; } else if (recommendation==='approve' ) {
+                      label="Disetujui" ; badge="bg-success" ; } %>
+
+                      <span class="badge <%= badge %>">
+                        <%= label %>
+                      </span>
+                  </td>
+                  <td>
+                    <a href="/users/admin/pengajuan/<%= p.application_id %>/tracking" class="btn btn-sm btn-success">
                       Detail
                     </a>
                   </td>
                 </tr>
-              <% }) %>
+                <% }) %>
             </tbody>
           </table>
 
@@ -54,4 +65,4 @@
     </main>
     <%- include('../partials/footer') %>
   </div>
-</div>
+  </div>

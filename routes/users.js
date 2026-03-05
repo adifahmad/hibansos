@@ -128,29 +128,423 @@ module.exports = function (db) {
     }
   });
 
+  router.get('/pemohon/dashboard', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'pemohon') {
+      return res.redirect('/login');
+    }
+
+    try {
+
+      // ========================
+      // STATS STATUS
+      // ========================
+      const statsResult = await db.query(`
+      SELECT
+        COUNT(*) AS total,
+
+        COUNT(*) FILTER (
+          WHERE r.review_status IS NULL
+        ) AS menunggu_review,
+
+        COUNT(*) FILTER (
+          WHERE r.review_status = 'approved'
+          AND e.recommendation IS NULL
+        ) AS menunggu_evaluasi,
+
+        COUNT(*) FILTER (
+          WHERE e.recommendation = 'approve'
+        ) AS disetujui,
+
+        COUNT(*) FILTER (
+          WHERE r.review_status = 'rejected'
+          OR e.recommendation = 'reject'
+        ) AS ditolak
+
+      FROM applications a
+
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM reviews
+        WHERE application_id = a.application_id
+        ORDER BY reviewed_at DESC
+        LIMIT 1
+      ) r ON true
+
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM evaluations
+        WHERE application_id = a.application_id
+        ORDER BY evaluated_at DESC
+        LIMIT 1
+      ) e ON true
+
+      WHERE a.user_id = $1
+    `, [req.session.user.usersid]);
+
+      const raw = statsResult.rows[0];
+
+      const stats = {
+        total: Number(raw.total),
+        menunggu_review: Number(raw.menunggu_review),
+        menunggu_evaluasi: Number(raw.menunggu_evaluasi),
+        disetujui: Number(raw.disetujui),
+        ditolak: Number(raw.ditolak)
+      };
+
+      // ========================
+      // MONTHLY 12 BULAN FIX
+      // ========================
+      const monthly = await db.query(`
+      SELECT 
+        TO_CHAR(months.bulan, 'Mon') AS bulan,
+        COALESCE(COUNT(a.application_id), 0) AS total
+      FROM generate_series(
+          date_trunc('year', CURRENT_DATE),
+          date_trunc('year', CURRENT_DATE) + interval '11 months',
+          interval '1 month'
+      ) AS months(bulan)
+
+      LEFT JOIN applications a
+        ON date_trunc('month', a.submission_date) = months.bulan
+        AND a.user_id = $1
+
+      GROUP BY months.bulan
+      ORDER BY months.bulan
+    `, [req.session.user.usersid]);
+
+      res.render('pemohon/dashboard', {
+        user: req.session.user,
+        stats: stats,
+        chartData: {
+          monthly: monthly.rows
+        }
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('/');
+    }
+  });
+
+  router.get('/reviewer/dashboard', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'reviewer') {
+      return res.redirect('/login');
+    }
+
+    try {
+
+      // ================= STATS =================
+      const stats = await db.query(`
+      SELECT
+        COUNT(*) AS total_masuk,
+
+        COUNT(*) FILTER (
+          WHERE r.review_status IS NOT NULL
+        ) AS sudah_review,
+
+        COUNT(*) FILTER (
+          WHERE r.review_status IS NULL
+        ) AS menunggu_review
+
+      FROM applications a
+
+      LEFT JOIN reviews r
+        ON r.application_id = a.application_id
+        AND r.reviewer_id = $1
+    `, [req.session.user.usersid]);
+
+
+      // ================= KATEGORI =================
+      const kategori = await db.query(`
+      SELECT category, COUNT(*) AS total
+      FROM applications
+      GROUP BY category
+    `);
+
+
+      // ================= RATA-RATA DANA =================
+      const rataDana = await db.query(`
+      SELECT
+        TO_CHAR(a.submission_date, 'Mon') AS bulan,
+        COALESCE(AVG(a.request_amount), 0) AS rata_dana
+      FROM applications a
+      JOIN reviews r
+        ON r.application_id = a.application_id
+      WHERE r.review_status = 'approved'
+        AND r.reviewer_id = $1
+      GROUP BY bulan
+      ORDER BY MIN(a.submission_date)
+    `, [req.session.user.usersid]);
+
+
+      res.render('reviewer/dashboard', {
+        user: req.session.user,
+        stats: stats.rows[0],
+        chartData: {
+          kategori: kategori.rows,
+          rataDana: rataDana.rows
+        }
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('/');
+    }
+  });
+
+  router.get('/evaluator/dashboard', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'evaluator') {
+      return res.redirect('/login');
+    }
+
+    try {
+
+      // ================= STATS =================
+      const stats = await db.query(`
+      SELECT
+        COUNT(*) AS total_masuk,
+
+        COUNT(*) FILTER (
+          WHERE e.recommendation IS NULL
+        ) AS menunggu_evaluasi,
+
+        COUNT(*) FILTER (
+          WHERE e.recommendation = 'approve'
+        ) AS disetujui,
+
+        COUNT(*) FILTER (
+          WHERE e.recommendation = 'reject'
+        ) AS ditolak
+
+      FROM evaluations e
+      WHERE e.evaluator_id = $1
+    `, [req.session.user.usersid]);
+
+
+      // ================= DISTRIBUSI KEPUTUSAN =================
+      const distribusi = await db.query(`
+      SELECT recommendation, COUNT(*) AS total
+      FROM evaluations
+      WHERE evaluator_id = $1
+      GROUP BY recommendation
+    `, [req.session.user.usersid]);
+
+
+      // ================= TOTAL DANA DISETUJUI PER BULAN =================
+      const danaBulanan = await db.query(`
+      SELECT
+        TO_CHAR(a.submission_date, 'Mon') AS bulan,
+        COALESCE(SUM(a.approved_amount),0) AS total_dana
+      FROM applications a
+      JOIN evaluations e
+        ON e.application_id = a.application_id
+      WHERE e.recommendation = 'approve'
+        AND e.evaluator_id = $1
+      GROUP BY bulan
+      ORDER BY MIN(a.submission_date)
+    `, [req.session.user.usersid]);
+
+
+      res.render('evaluator/dashboard', {
+        user: req.session.user,
+        stats: stats.rows[0],
+        chartData: {
+          distribusi: distribusi.rows,
+          danaBulanan: danaBulanan.rows
+        }
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('/');
+    }
+  });
+
+  router.get('/admin/dashboard', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.redirect('/login');
+    }
+
+    try {
+
+      // ================= SUMMARY PENGAJUAN =================
+      const summary = await db.query(`
+      SELECT
+        COUNT(*) AS total_pengajuan,
+
+        COUNT(*) FILTER (
+          WHERE e.recommendation = 'approve'
+        ) AS disetujui,
+
+        COUNT(*) FILTER (
+          WHERE e.recommendation = 'reject'
+        ) AS ditolak,
+
+        COUNT(*) FILTER (
+          WHERE e.recommendation IS NULL
+        ) AS pending,
+
+        COALESCE(SUM(a.request_amount) FILTER (
+          WHERE e.recommendation = 'approve'
+        ),0) AS total_dana
+
+      FROM applications a
+
+      LEFT JOIN LATERAL (
+        SELECT recommendation
+        FROM evaluations
+        WHERE application_id = a.application_id
+        ORDER BY evaluated_at DESC
+        LIMIT 1
+      ) e ON true
+    `);
+
+
+      // ================= LEGALITAS =================
+      const legalitas = await db.query(`
+      SELECT
+        COUNT(*) AS total_legalitas,
+
+        COUNT(*) FILTER (
+          WHERE verification_status = 'approved'
+        ) AS legalitas_disetujui,
+
+        COUNT(*) FILTER (
+          WHERE verification_status = 'rejected'
+        ) AS legalitas_ditolak,
+
+        COUNT(*) FILTER (
+          WHERE verification_status = 'pending'
+        ) AS legalitas_pending
+
+      FROM institution_legalities
+    `);
+
+
+      // ================= PENGAJUAN PER BULAN =================
+      const monthly = await db.query(`
+      SELECT
+        TO_CHAR(submission_date, 'Mon') AS bulan,
+        COUNT(*) AS total
+      FROM applications
+      GROUP BY bulan
+      ORDER BY MIN(submission_date)
+    `);
+
+
+      // ================= DISTRIBUSI KATEGORI =================
+      const kategori = await db.query(`
+      SELECT category, COUNT(*) AS total
+      FROM applications
+      GROUP BY category
+    `);
+
+
+      // ================= TOTAL DANA DISETUJUI PER BULAN =================
+      const danaBulanan = await db.query(`
+      SELECT
+        TO_CHAR(a.submission_date, 'Mon') AS bulan,
+        COALESCE(SUM(a.request_amount),0) AS total_dana
+      FROM applications a
+
+      LEFT JOIN LATERAL (
+        SELECT recommendation
+        FROM evaluations
+        WHERE application_id = a.application_id
+        ORDER BY evaluated_at DESC
+        LIMIT 1
+      ) e ON true
+
+      WHERE e.recommendation = 'approve'
+      GROUP BY bulan
+      ORDER BY MIN(a.submission_date)
+    `);
+
+
+      // ================= DISTRIBUSI STATUS (FIXED) =================
+      const statusDistribusi = await db.query(`
+      SELECT
+        status,
+        COUNT(*) AS total
+      FROM (
+        SELECT
+          CASE
+            WHEN e.recommendation = 'approve' THEN 'Approved'
+            WHEN e.recommendation = 'reject' THEN 'Rejected'
+            ELSE 'Pending'
+          END AS status
+        FROM applications a
+
+        LEFT JOIN LATERAL (
+          SELECT recommendation
+          FROM evaluations
+          WHERE application_id = a.application_id
+          ORDER BY evaluated_at DESC
+          LIMIT 1
+        ) e ON true
+      ) AS sub
+      GROUP BY status
+    `);
+
+
+      res.render('admin/dashboard', {
+        user: req.session.user,
+        stats: summary.rows[0],
+        legalitas: legalitas.rows[0],
+        chartData: {
+          monthly: monthly.rows,
+          kategori: kategori.rows,
+          danaBulanan: danaBulanan.rows,
+          statusDistribusi: statusDistribusi.rows
+        }
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('/');
+    }
+  });
 
   router.get('/pemohon/pengajuan-baru', async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'pemohon') {
       return res.redirect('/login');
     }
 
-    const legalitas = await db.query(`
-    SELECT verification_status
-    FROM institution_legalities
-    WHERE user_id = $1
-    ORDER BY created_at DESC
-    LIMIT 1
-  `, [req.session.user.usersid]);
+    try {
 
-    const legalitasStatus =
-      legalitas.rows.length > 0
-        ? legalitas.rows[0].verification_status
-        : 'pending';
+      // 🔹 Ambil legalitas terakhir
+      const legalitas = await db.query(`
+      SELECT verification_status
+      FROM institution_legalities
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [req.session.user.usersid]);
 
-    res.render('pemohon/pengajuan', {
-      user: req.session.user,
-      legalitasStatus
-    });
+      const legalitasStatus =
+        legalitas.rows.length > 0
+          ? legalitas.rows[0].verification_status
+          : 'pending';
+
+
+      // 🔹 TAMBAHAN: Ambil kategori hibah
+      const kategori = await db.query(`
+      SELECT nama_kategori
+      FROM kategori_hibah
+      ORDER BY nama_kategori ASC
+    `);
+
+
+      res.render('pemohon/pengajuan', {
+        user: req.session.user,
+        legalitasStatus,
+        kategori: kategori.rows   // 🔥 kirim ke EJS
+      });
+
+    } catch (err) {
+      console.error('Form pengajuan error:', err);
+      res.redirect('/users/pemohon/dashboard');
+    }
   });
 
 
@@ -923,59 +1317,59 @@ module.exports = function (db) {
     res.redirect('/users/pemohon/pengajuan-saya');
   });
 
-  router.get('/pemohon/monev', async (req, res) => {
-    if (!req.session.user || req.session.user.role !== 'pemohon') {
+  router.get('/monev', async (req, res) => {
+    if (!req.session.user) {
       return res.redirect('/login');
     }
 
     try {
+
       const result = await db.query(`
-  SELECT
-    a.application_id,
-    a.title,
-    a.request_amount,
-    a.status,
+      SELECT
+        a.application_id,
+        a.title,
+        a.request_amount,
+        a.status,
 
-    -- reviewer
-    r.review_status,
-    r.comments AS review_comments,
-    r.approved_amount AS reviewer_amount,
+        -- reviewer
+        r.review_status,
+        r.comments AS review_comments,
+        r.approved_amount AS reviewer_amount,
 
-    -- evaluator
-    e.recommendation,
-    e.evaluation_notes,
-    e.approved_amount AS evaluator_amount
+        -- evaluator
+        e.recommendation,
+        e.evaluation_notes,
+        e.approved_amount AS evaluator_amount
 
-  FROM applications a
+      FROM applications a
 
-  LEFT JOIN LATERAL (
-    SELECT *
-    FROM reviews
-    WHERE application_id = a.application_id
-    ORDER BY reviewed_at DESC
-    LIMIT 1
-  ) r ON true
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM reviews
+        WHERE application_id = a.application_id
+        ORDER BY reviewed_at DESC
+        LIMIT 1
+      ) r ON true
 
-  LEFT JOIN LATERAL (
-    SELECT *
-    FROM evaluations
-    WHERE application_id = a.application_id
-    ORDER BY evaluated_at DESC
-    LIMIT 1
-  ) e ON true
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM evaluations
+        WHERE application_id = a.application_id
+        ORDER BY evaluated_at DESC
+        LIMIT 1
+      ) e ON true
 
-  WHERE a.user_id = $1
-  ORDER BY a.created_at DESC
-`, [req.session.user.usersid]);
+      ORDER BY a.created_at DESC
+    `);
 
-      res.render('pemohon/monev', {
+      res.render('monev', {
         user: req.session.user,
         data: result.rows
       });
 
     } catch (err) {
       console.error(err);
-      res.redirect('/users/pemohon/dashboard');
+      res.redirect('/users/monev');
     }
   });
 
@@ -993,12 +1387,16 @@ module.exports = function (db) {
         a.category,
         a.request_amount,
         a.status,
+
         r.review_status,
         r.comments,
-        r.reviewed_at
+        r.reviewed_at,
+        r.approved_amount  -- TAMBAHAN
+
       FROM reviews r
       JOIN applications a
         ON a.application_id = r.application_id
+
       WHERE r.reviewer_id = $1
       ORDER BY r.reviewed_at DESC
       `,
@@ -1556,23 +1954,36 @@ module.exports = function (db) {
       return res.redirect('/login');
     }
 
-    const result = await db.query(`
-    SELECT
-      a.title,
-      a.category,
-      e.score,
-      e.recommendation,
-      e.evaluated_at
-    FROM evaluations e
-    JOIN applications a ON a.application_id = e.application_id
-    WHERE e.evaluator_id = $1
-    ORDER BY e.evaluated_at DESC
-  `, [req.session.user.usersid]);
+    try {
+      const result = await db.query(`
+      SELECT
+        a.application_id,
+        a.title,
+        a.category,
+        a.request_amount,        -- TAMBAHAN
 
-    res.render('evaluator/riwayat_evaluasi', {
-      user: req.session.user,
-      data: result.rows
-    });
+        e.score,
+        e.recommendation,
+        e.approved_amount,       -- TAMBAHAN
+        e.evaluated_at
+
+      FROM evaluations e
+      JOIN applications a 
+        ON a.application_id = e.application_id
+
+      WHERE e.evaluator_id = $1
+      ORDER BY e.evaluated_at DESC
+    `, [req.session.user.usersid]);
+
+      res.render('evaluator/riwayat_evaluasi', {
+        user: req.session.user,
+        data: result.rows
+      });
+
+    } catch (err) {
+      console.error('Riwayat evaluasi error:', err);
+      res.redirect('/users/evaluator/dashboard');
+    }
   });
 
   router.get('/evaluator/laporan', async (req, res) => {
@@ -1771,18 +2182,35 @@ module.exports = function (db) {
       return res.redirect('/login');
     }
 
-    const result = await db.query(`
-    SELECT il.*, u.name, u.organization
-    FROM institution_legalities il
-    JOIN users u ON u.userid = il.user_id
-    WHERE il.legality_id = $1
-  `, [req.params.id]);
+    try {
+      const result = await db.query(`
+      SELECT 
+        il.*, 
+        u.name, 
+        u.organization,
+        u.address,          -- TAMBAHAN
+        u.latitude,         -- TAMBAHAN
+        u.longitude         -- TAMBAHAN
+      FROM institution_legalities il
+      JOIN users u ON u.userid = il.user_id
+      WHERE il.legality_id = $1
+    `, [req.params.id]);
 
-    res.render('admin/legalitas_list', {
-      user: req.session.user,
-      data: result.rows[0]
-    });
+      if (result.rows.length === 0) {
+        return res.redirect('/users/admin/legalitas');
+      }
+
+      res.render('admin/legalitas_list', {
+        user: req.session.user,
+        data: result.rows[0]
+      });
+
+    } catch (err) {
+      console.error('Detail legalitas error:', err);
+      res.redirect('/users/admin/legalitas');
+    }
   });
+
 
   router.post('/admin/legalitas/:id/verifikasi', async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -1919,11 +2347,31 @@ module.exports = function (db) {
     SELECT
       a.application_id,
       a.title,
-      a.status,
       a.submission_date,
-      u.name
+      u.name,
+
+      r.review_status,
+      e.recommendation
+
     FROM applications a
     JOIN users u ON u.userid = a.user_id
+
+    LEFT JOIN LATERAL (
+      SELECT review_status
+      FROM reviews
+      WHERE application_id = a.application_id
+      ORDER BY reviewed_at DESC
+      LIMIT 1
+    ) r ON true
+
+    LEFT JOIN LATERAL (
+      SELECT recommendation
+      FROM evaluations
+      WHERE application_id = a.application_id
+      ORDER BY evaluated_at DESC
+      LIMIT 1
+    ) e ON true
+
     WHERE TO_CHAR(a.submission_date, 'YYYY-MM') = $1
     ORDER BY a.submission_date DESC
   `, [req.params.bulan]);
@@ -1968,15 +2416,32 @@ module.exports = function (db) {
     isAdmin,
     async (req, res) => {
       try {
+
         const result = await db.query(`
         SELECT
           a.application_id,
           a.title,
           a.status,
           a.submission_date,
+          a.location_detail,
+          a.latitude,
+          a.longitude,
+          a.beneficiaries_count,
+          a.request_amount,
+          a.approved_amount,
+
+          r.review_status,
           r.reviewed_at,
+          r.approved_amount AS reviewer_amount,
+          r.comments AS reviewer_comments,
+
+          e.recommendation,
           e.evaluated_at,
+          e.approved_amount AS evaluator_amount,
+          e.evaluation_notes,
+
           u.name AS pemohon,
+          u.address,
 
           d.file_name,
           d.file_path,
@@ -1987,6 +2452,7 @@ module.exports = function (db) {
         LEFT JOIN reviews r ON r.application_id = a.application_id
         LEFT JOIN evaluations e ON e.application_id = a.application_id
         LEFT JOIN documents d ON d.application_id = a.application_id
+
         WHERE a.application_id = $1
       `, [req.params.id]);
 
@@ -1994,9 +2460,18 @@ module.exports = function (db) {
           return res.redirect('/users/admin/laporan');
         }
 
+        // 🔹 Ambil foto kegiatan terpisah (biar gak duplicate row)
+        const photos = await db.query(`
+        SELECT *
+        FROM application_photos
+        WHERE application_id = $1
+        ORDER BY uploaded_at DESC
+      `, [req.params.id]);
+
         res.render('admin/laporan_detail', {
           user: req.session.user,
-          data: result.rows
+          data: result.rows,
+          photos: photos.rows
         });
 
       } catch (err) {
@@ -2006,12 +2481,58 @@ module.exports = function (db) {
     }
   );
 
+  router.get('/admin/settings', isAdmin, async (req, res) => {
+    try {
 
+      const kategori = await db.query(`
+      SELECT *
+      FROM kategori_hibah
+      ORDER BY created_at DESC
+    `);
 
-  router.get('/admin/settings', isAdmin, (req, res) => {
-    res.render('admin/settings', {
-      user: req.session.user
-    });
+      res.render('admin/settings', {
+        user: req.session.user,
+        kategori: kategori.rows
+      });
+
+    } catch (err) {
+      console.error('Settings error:', err);
+      res.redirect('/users/admin/dashboard');
+    }
+  });
+
+  router.post('/admin/kategori-hibah', isAdmin, async (req, res) => {
+    try {
+
+      const { nama_kategori } = req.body;
+
+      await db.query(`
+      INSERT INTO kategori_hibah (nama_kategori)
+      VALUES ($1)
+    `, [nama_kategori]);
+
+      res.redirect('/users/admin/settings');
+
+    } catch (err) {
+      console.error('Tambah kategori error:', err);
+      res.redirect('/users/admin/settings');
+    }
+  });
+
+  router.post('/admin/kategori-hibah/:id/delete', isAdmin, async (req, res) => {
+    try {
+
+      await db.query(`
+      DELETE FROM kategori_hibah
+      WHERE kategori_id = $1
+    `, [req.params.id]);
+
+      res.redirect('/users/admin/settings');
+
+    } catch (err) {
+      console.error('Delete kategori error:', err);
+      res.redirect('/users/admin/settings');
+    }
   });
 
   router.post('/notifications/:id/read', async (req, res) => {

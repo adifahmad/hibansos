@@ -30,6 +30,7 @@
                                     <th>Judul</th>
                                     <th>Kategori</th>
                                     <th>Dana (Rp)</th>
+                                    <th>Dana Disetujui (Rp)</th> <!-- TAMBAHAN -->
                                     <th>Status Review</th>
                                     <th>Tanggal Review</th>
                                     <th>Aksi</th>
@@ -39,7 +40,7 @@
                             <tbody>
                                 <% if (data.length===0) { %>
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">
+                                        <td colspan="7" class="text-center text-muted py-4">
                                             Belum ada riwayat review
                                         </td>
                                     </tr>
@@ -50,18 +51,25 @@
                                                 <td>
                                                     <%= p.title %>
                                                 </td>
+
                                                 <td>
                                                     <%= p.category %>
                                                 </td>
+
                                                 <td>
-                                                    <%= Number(p.request_amount).toLocaleString('id-ID') %>
+                                                    <%= Number(p.request_amount || 0).toLocaleString('id-ID') %>
+                                                </td>
+
+                                                <!-- TAMBAHAN -->
+                                                <td>
+                                                    <%= Number(p.approved_amount || 0).toLocaleString('id-ID') %>
                                                 </td>
 
                                                 <td>
                                                     <span class="badge
-                      <%= p.review_status === 'approved'
-                        ? 'bg-success'
-                        : 'bg-danger' %>">
+          <%= p.review_status === 'approved'
+            ? 'bg-success'
+            : 'bg-danger' %>">
                                                         <%= p.review_status %>
                                                     </span>
                                                 </td>
@@ -69,13 +77,13 @@
                                                 <td>
                                                     <% const reviewedDate=p.reviewed_at ? new Date(p.reviewed_at) :
                                                         null; %>
-
                                                         <% if (reviewedDate && !isNaN(reviewedDate)) { %>
                                                             <%= reviewedDate.toLocaleDateString('id-ID') %>
                                                                 <% } else { %>
                                                                     <span class="text-muted fst-italic">-</span>
                                                                     <% } %>
                                                 </td>
+
                                                 <td>
                                                     <a href="/users/reviewer/pengajuan/<%= p.application_id %>"
                                                         class="btn btn-sm btn-info">

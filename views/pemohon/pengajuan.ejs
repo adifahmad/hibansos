@@ -32,12 +32,18 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Kategori Hibah</label>
+
                         <select name="category" class="form-select" required>
                             <option value="">-- Pilih Kategori --</option>
-                            <option value="pendidikan">Pendidikan</option>
-                            <option value="kesehatan">Kesehatan</option>
-                            <option value="sosial">Sosial</option>
-                            <option value="ekonomi">Ekonomi</option>
+
+                            <% if (kategori && kategori.length> 0) { %>
+                                <% kategori.forEach(k=> { %>
+                                    <option value="<%= k.nama_kategori %>">
+                                        <%= k.nama_kategori %>
+                                    </option>
+                                    <% }) %>
+                                        <% } %>
+
                         </select>
                     </div>
 

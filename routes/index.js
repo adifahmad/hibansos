@@ -42,15 +42,13 @@ router.post('/login', async function(req, res, next){
     console.log('✅ Login sukses:', users[0].username);
 
     if (req.session.user.role === 'pemohon') {
-      return res.redirect('/pemohon/dashboard');
+      return res.redirect('/users/pemohon/dashboard');
     } else if (req.session.user.role === 'reviewer') {
-      return res.redirect('/reviewer/dashboard');
+      return res.redirect('/users/reviewer/dashboard');
     } else if (req.session.user.role === 'evaluator') {
-      return res.redirect('/evaluator/dashboard'); // atau '/staff/dashboard' kalau kamu pakai itu
+      return res.redirect('/users/evaluator/dashboard'); // atau '/staff/dashboard' kalau kamu pakai itu
     } else if (req.session.user.role === 'admin') {
-      return res.redirect('/admin/dashboard'); // atau '/staff/dashboard' kalau kamu pakai itu
-    }else if (req.session.user.role === 'auditor') {
-      return res.redirect('/auditor/dashboard'); // atau '/staff/dashboard' kalau kamu pakai itu
+      return res.redirect('/users/admin/dashboard'); // atau '/staff/dashboard' kalau kamu pakai itu
     }else {
       return res.redirect('/users');
     }

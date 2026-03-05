@@ -14,6 +14,10 @@
 
       <h1 class="fw-bold mb-3">Pengaturan Sistem</h1>
 
+      <!-- ===================== -->
+      <!-- PENGATURAN UMUM -->
+      <!-- ===================== -->
+
       <div class="card shadow-sm">
         <div class="card-body">
 
@@ -32,6 +36,75 @@
           <button class="btn btn-success">
             Simpan Pengaturan
           </button>
+
+        </div>
+      </div>
+
+      <!-- ===================== -->
+      <!-- KELOLA JENIS HIBAH -->
+      <!-- ===================== -->
+
+      <div class="card shadow-sm mt-4">
+        <div class="card-header fw-bold">
+          Kelola Jenis Hibah
+        </div>
+        <div class="card-body">
+
+          <!-- FORM TAMBAH -->
+          <form method="POST" action="/users/admin/kategori-hibah" class="mb-4">
+            <div class="row">
+              <div class="col-md-8">
+                <input type="text"
+                       name="nama_kategori"
+                       class="form-control"
+                       placeholder="Nama jenis hibah"
+                       required>
+              </div>
+              <div class="col-md-4">
+                <button class="btn btn-success w-100">
+                  Tambah
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <!-- TABEL LIST -->
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Nama Jenis Hibah</th>
+                <th style="width:120px">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <% if (!kategori || kategori.length === 0) { %>
+                <tr>
+                  <td colspan="2" class="text-center text-muted">
+                    Belum ada jenis hibah
+                  </td>
+                </tr>
+              <% } %>
+
+              <% if (kategori) { %>
+                <% kategori.forEach(k => { %>
+                  <tr>
+                    <td><%= k.nama_kategori %></td>
+                    <td>
+                      <form method="POST"
+                            action="/users/admin/kategori-hibah/<%= k.kategori_id %>/delete"
+                            onsubmit="return confirm('Yakin hapus kategori ini?')">
+                        <button class="btn btn-sm btn-danger w-100">
+                          Hapus
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
+
+            </tbody>
+          </table>
 
         </div>
       </div>

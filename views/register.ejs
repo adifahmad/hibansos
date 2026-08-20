@@ -55,18 +55,25 @@
             <label for="role">Pilih Peran:</label>
             <select id="role" name="role">
               <option value="" disabled>Pilih peran...</option>
-
               <option value="pemohon" selected>Pemohon</option>
-
               <option value="reviewer" disabled>Reviewer</option>
               <option value="evaluator" disabled>Evaluator</option>
               <option value="admin" disabled>Admin</option>
             </select>
           </div>
 
-          <div class="register-form-group register-password">
+          <div class="register-form-group with-arrow">
+            <label for="rolepemohon">Pilih Peran Sebagai Pemohon:</label>
+            <select id="rolepemohon" name="rolepemohon">
+              <option value="" disabled selected>Pilih Peran Sebagai Pemohon..</option>
+              <option value="lembaga">Lembaga</option>
+              <option value="individu">Individu</option>
+            </select>
+          </div>
+
+          <div class="register-form-group register-password" id="organizationAmountWrapper" style="display:none;">
             <label>Organisasi</label>
-            <input type="text" name="organization" placeholder="Masukkan nama organisasi" />
+            <input type="text" id="organizationInput" name="organization" placeholder="Masukkan nama organisasi" />
           </div>
 
           <button type="submit" class="register-btn">Lanjut ke Peta</button>
@@ -78,6 +85,22 @@
         <img src="images/packagedelivery.png" alt="Ilustrasi kurir" />
       </div>
     </div>
+    <script>
+      const select = document.getElementById("rolepemohon");
+      const wrapper = document.getElementById("organizationAmountWrapper");
+      const input = document.getElementById("organizationInput");
+
+      select.addEventListener("change", function () {
+        if (this.value === "lembaga") {
+          wrapper.style.display = "block";
+          input.required = true;
+        } else {
+          wrapper.style.display = "none";
+          input.required = false;
+          input.value = "";
+        }
+      });
+    </script>
   </div>
 
 </body>

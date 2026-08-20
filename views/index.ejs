@@ -1,12 +1,29 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HIBANSOS App</title>
   <link rel="stylesheet" href="stylesheets/css/styles.css">
 </head>
+
 <body>
+
+  <!-- Navbar (di-style inline, tidak nambah apapun ke styles.css) -->
+  <nav
+    style="position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:16px 40px; background-color:#ffffff; border-bottom:1px solid #e5e7eb; font-family:'Poppins', sans-serif;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img src="images/hibansos-logo.png" alt="Logo Hibansos" style="width:34px; height:34px; object-fit:contain;">
+      <span style="font-weight:700; letter-spacing:0.5px; color:#111; font-size:16px;">HIBANSOS</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:28px;">
+      <a href="/" style="color:#444; text-decoration:none; font-size:14px; font-weight:500;">Beranda</a>
+      <button onclick="window.location.href='/login'"
+        style="background-color:#22a37d; color:#ffffff; border:none; padding:9px 24px; border-radius:30px; font-weight:600; font-size:14px; cursor:pointer; font-family:'Poppins', sans-serif;">LOGIN</button>
+    </div>
+  </nav>
+
   <div class="container">
     <div class="color-box"></div>
     <!-- Bagian Kiri -->
@@ -15,6 +32,25 @@
         <h3 class="brand">HIBANSOS</h3>
         <h1 class="title">APLIKASI<br>HIBAH<br>BANSOS</h1>
         <p class="subtitle">Mudah untuk mengusulkan hibah dan bansos</p>
+
+        <!-- CTA (inline style) -->
+        <div style="display:flex; align-items:center; gap:20px; margin-top:28px;">
+          <button onclick="window.location.href='/login'"
+            style="background-color:#22a37d; color:#ffffff; border:none; padding:13px 28px; border-radius:30px; font-weight:600; font-size:15px; cursor:pointer; font-family:'Poppins', sans-serif;">Ajukan
+            sekarang</button>
+        </div>
+
+        <!-- Statistik (inline style) — GANTI angka di bawah dengan data asli sebelum publish -->
+        <div style="display:flex; gap:40px; margin-top:36px; padding-top:20px; border-top:1px solid #e5e7eb;">
+          <div>
+            <div style="font-size:20px; font-weight:700; color:#111;">1.240</div>
+            <div style="font-size:12px; color:#888; margin-top:2px;">Usulan diproses</div>
+          </div>
+          <div>
+            <div style="font-size:20px; font-weight:700; color:#111;">7 hari</div>
+            <div style="font-size:12px; color:#888; margin-top:2px;">Rata-rata verifikasi</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -23,8 +59,57 @@
       <div class="image-box">
         <img src="images/uang-bansos_banyuwangi.jpg" alt="Uang Rupiah" class="image">
       </div>
-      <button class="login-btn" onclick="window.location.href='/login'">LOGIN</button>
     </div>
   </div>
+
+  <!-- Berita & Informasi (section tambahan di beranda, style inline) -->
+  <section style="max-width:1100px; margin:0 auto; padding:60px 40px; font-family:'Poppins', sans-serif;">
+    <h2 style="font-size:24px; font-weight:700; color:#111; margin-bottom:6px;">Berita & informasi</h2>
+    <p style="font-size:14px; color:#888; margin-bottom:28px;">Kabar terbaru seputar program hibah dan bansos</p>
+
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:24px;">
+
+      <div style="background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;">
+        <div style="height:140px; background-color:#e6f4ea;"></div>
+        <div style="padding:16px;">
+          <span style="font-size:11px; color:#22a37d; font-weight:600; letter-spacing:0.5px;">PENGUMUMAN</span>
+          <h3 style="font-size:15px; font-weight:600; color:#111; margin:8px 0 6px;">Jadwal pencairan bansos tahap II
+            dibuka</h3>
+          <p style="font-size:13px; color:#666; line-height:1.5; margin-bottom:10px;">Contoh teks berita — ganti dengan
+            informasi resmi sebelum tayang.</p>
+          <a href="#" style="font-size:13px; color:#22a37d; font-weight:600; text-decoration:none;">Baca
+            selengkapnya</a>
+        </div>
+      </div>
+
+      <div style="background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;">
+        <div style="height:140px; background-color:#fdeee0;"></div>
+        <div style="padding:16px;">
+          <span style="font-size:11px; color:#f58634; font-weight:600; letter-spacing:0.5px;">PANDUAN</span>
+          <h3 style="font-size:15px; font-weight:600; color:#111; margin:8px 0 6px;">Cara mengajukan usulan hibah lewat
+            aplikasi</h3>
+          <p style="font-size:13px; color:#666; line-height:1.5; margin-bottom:10px;">Contoh teks berita — ganti dengan
+            informasi resmi sebelum tayang.</p>
+          <a href="#" style="font-size:13px; color:#22a37d; font-weight:600; text-decoration:none;">Baca
+            selengkapnya</a>
+        </div>
+      </div>
+
+      <div style="background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;">
+        <div style="height:140px; background-color:#e6f4ea;"></div>
+        <div style="padding:16px;">
+          <span style="font-size:11px; color:#22a37d; font-weight:600; letter-spacing:0.5px;">PENGUMUMAN</span>
+          <h3 style="font-size:15px; font-weight:600; color:#111; margin:8px 0 6px;">Perpanjangan masa verifikasi
+            dokumen</h3>
+          <p style="font-size:13px; color:#666; line-height:1.5; margin-bottom:10px;">Contoh teks berita — ganti dengan
+            informasi resmi sebelum tayang.</p>
+          <a href="#" style="font-size:13px; color:#22a37d; font-weight:600; text-decoration:none;">Baca
+            selengkapnya</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
 </body>
+
 </html>

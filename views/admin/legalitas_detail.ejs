@@ -18,10 +18,13 @@
                     <div class="container-fluid px-4 mt-4">
 
                         <h1 class="fw-bold">Verifikasi Legalitas</h1>
-                        <p class="text-muted">Daftar legalitas lembaga yang diajukan pemohon.</p>
+                        <p class="text-muted">Daftar legalitas lembaga dan bansos yang diajukan pemohon.</p>
 
-                        <div class="card shadow-sm">
+                        <!-- ================= HIBAH ================= -->
+                        <div class="card shadow-sm mb-5">
                             <div class="card-body">
+
+                                <h5 class="fw-bold mb-3">Legalitas Hibah</h5>
 
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-striped w-100">
@@ -37,15 +40,17 @@
                                         </thead>
 
                                         <tbody>
-                                            <% if (data.length===0) { %>
+                                            <% if (!data || data.length===0) { %>
                                                 <tr>
-                                                    <td colspan="5" class="text-center text-muted">
-                                                        Tidak ada data
+                                                    <td colspan="6" class="text-center text-muted">
+                                                        Tidak ada data hibah
                                                     </td>
                                                 </tr>
                                                 <% } else { %>
+
                                                     <% data.forEach(l=> { %>
                                                         <tr>
+
                                                             <td>
                                                                 <%= l.name %>
                                                             </td>
@@ -55,16 +60,18 @@
                                                             <td>
                                                                 <%= l.npwp %>
                                                             </td>
+
                                                             <td>
                                                                 <span class="badge
-                            <%= l.verification_status === 'approved'
-                              ? 'bg-success'
-                              : l.verification_status === 'rejected'
-                              ? 'bg-danger'
-                              : 'bg-warning text-dark' %>">
+                                                            <%= l.verification_status === 'approved'
+                                                            ? 'bg-success'
+                                                            : l.verification_status === 'rejected'
+                                                            ? 'bg-danger'
+                                                            : 'bg-warning text-dark' %>">
                                                                     <%= l.verification_status %>
                                                                 </span>
                                                             </td>
+
                                                             <td>
                                                                 <% if (!l.documents || l.documents.length===0) { %>
                                                                     <span class="text-muted">Tidak ada</span>
@@ -79,6 +86,7 @@
                                                                             <% }) %>
                                                                                 <% } %>
                                                             </td>
+
                                                             <td class="text-nowrap">
                                                                 <% if (l.verification_status !=='approved' ) { %>
 
@@ -101,9 +109,109 @@
 
                                                         </tr>
                                                         <% }) %>
+
                                                             <% } %>
                                         </tbody>
+                                    </table>
+                                </div>
 
+                            </div>
+                        </div>
+
+                        <!-- ================= BANSOS ================= -->
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+
+                                <h5 class="fw-bold mb-3">Legalitas Bansos</h5>
+
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped w-100">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Nama</th>
+                                                <th>NIK</th>
+                                                <th>No KK</th>
+                                                <th>Status</th>
+                                                <th>Dokumen</th>
+                                                <th style="width:140px">Aksi</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            <% if (!bansos || bansos.length===0) { %>
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted">
+                                                        Tidak ada data bansos
+                                                    </td>
+                                                </tr>
+                                                <% } else { %>
+
+                                                    <% bansos.forEach(l=> { %>
+                                                        <tr>
+
+                                                            <td>
+                                                                <%= l.name %>
+                                                            </td>
+                                                            <td>
+                                                                <%= l.nik %>
+                                                            </td>
+                                                            <td>
+                                                                <%= l.no_kk %>
+                                                            </td>
+
+                                                            <td>
+                                                                <span class="badge
+                                                            <%= l.verification_status === 'approved'
+                                                            ? 'bg-success'
+                                                            : l.verification_status === 'rejected'
+                                                            ? 'bg-danger'
+                                                            : 'bg-warning text-dark' %>">
+                                                                    <%= l.verification_status %>
+                                                                </span>
+                                                            </td>
+
+                                                            <td>
+                                                                <% if (!l.documents || l.documents.length===0) { %>
+                                                                    <span class="text-muted">Tidak ada</span>
+                                                                    <% } else { %>
+                                                                        <% l.documents.forEach(doc=> { %>
+                                                                            <a href="/uploads/<%= doc.file_path %>"
+                                                                                target="_blank"
+                                                                                class="btn btn-sm btn-outline-primary me-1 mb-1">
+                                                                                <i class="fas fa-file"></i>
+                                                                                Lihat
+                                                                            </a>
+                                                                            <% }) %>
+                                                                                <% } %>
+                                                            </td>
+
+                                                            <td class="text-nowrap">
+
+                                                                <% if (l.verification_status !=='approved' ) { %>
+
+                                                                    <a href="/users/admin/legalitas-bansos/<%= l.legality_id %>"
+                                                                        class="btn btn-sm btn-info mb-1">
+                                                                        <i class="fas fa-eye"></i> Detail
+                                                                    </a>
+
+                                                                    <a href="/users/admin/legalitas-bansos/<%= l.legality_id %>/edit"
+                                                                        class="btn btn-sm btn-warning mb-1">
+                                                                        <i class="fas fa-edit"></i> Edit
+                                                                    </a>
+
+                                                                    <% } else { %>
+                                                                        <span class="text-muted fst-italic">
+                                                                            ✔ Sudah disetujui
+                                                                        </span>
+                                                                        <% } %>
+
+                                                            </td>
+
+                                                        </tr>
+                                                        <% }) %>
+
+                                                            <% } %>
+                                        </tbody>
                                     </table>
                                 </div>
 

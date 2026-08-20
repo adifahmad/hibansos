@@ -3,7 +3,19 @@
     <div id="layoutSidenav_nav">
         <nav class="sb-sidenav accordion spotify-green">
             <div class="sb-sidenav-menu">
-                <%- include('partials/menu/' + user.role) %>
+                <% if (user.role==='pemohon' ) { %>
+                    <% if (user.rolepemohon==='individu' ) { %>
+                        <%- include('partials/menu/pemohon_individu') %>
+                            <% } else { %>
+                                <%- include('partials/menu/pemohon_lembaga') %>
+                                    <% } %>
+                                        <% } else if (user.role==='reviewer' ) { %>
+                                            <%- include('partials/menu/reviewer') %>
+                                                <% } else if (user.role==='evaluator' ) { %>
+                                                    <%- include('partials/menu/evaluator') %>
+                                                        <% } else if (user.role==='admin' ) { %>
+                                                            <%- include('partials/menu/admin') %>
+                                                                <% } %>
             </div>
         </nav>
     </div>
@@ -13,164 +25,411 @@
             <div class="container-fluid px-4">
 
                 <h1 class="mt-4 fw-bold">Monitoring & Evaluasi</h1>
-                <p class="text-muted">
-                    Pantau perkembangan pendanaan setiap pengajuan Anda.
-                </p>
+                <p class="text-muted">Pantau perkembangan pendanaan setiap pengajuan Anda.</p>
 
                 <div class="card mb-4">
                     <div class="card-header">
                         <i class="fas fa-chart-line me-1"></i>
                         Monitoring Dana
                     </div>
-
                     <div class="card-body">
-                        <table class="table table-bordered table-striped align-middle">
-                            <thead>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped align-middle" style="min-width:1400px;">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2" class="text-center align-middle" style="min-width:120px;">Judul
+                                        </th>
+                                        <th rowspan="2" class="text-center align-middle" style="min-width:100px;">
+                                            Diajukan<br><small>(Rp)</small></th>
+                                        <th colspan="3" class="text-center">Reviewer</th>
+                                        <th colspan="3" class="text-center">Evaluator</th>
+                                        <th rowspan="2" class="text-center align-middle" style="min-width:150px;">
+                                            Progress Persetujuan</th>
+                                        <th rowspan="2" class="text-center align-middle" style="min-width:120px;">Status
+                                        </th>
+                                        <th rowspan="2" class="text-center align-middle" style="min-width:180px;">
+                                            Progress Pembangunan</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-center" style="min-width:100px;">
+                                            Disetujui<br><small>(Rp)</small></th>
+                                        <th class="text-center" style="min-width:100px;">Selisih<br><small>(Rp)</small>
+                                        </th>
+                                        <th class="text-center" style="min-width:100px;">Catatan</th>
+                                        <th class="text-center" style="min-width:100px;">
+                                            Disetujui<br><small>(Rp)</small></th>
+                                        <th class="text-center" style="min-width:100px;">Selisih<br><small>(Rp)</small>
+                                        </th>
+                                        <th class="text-center" style="min-width:100px;">Catatan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
 
-                                <!-- Grouping -->
-                                <tr>
-                                    <th rowspan="2" class="text-center align-middle">Judul</th>
-                                    <th rowspan="2" class="text-center align-middle">Diajukan<br><small>(Rp)</small>
-                                    </th>
+                                    <% if (data && data.length> 0) { %>
+                                        <% for (var i=0; i < data.length; i++) { %>
+                                            <% var p=data[i]; %>
+                                                <% var diajukan=Number(p.request_amount || 0); %>
+                                                    <% var reviewerSetuju=Number(p.reviewer_amount || 0); %>
+                                                        <% var evaluatorSetuju=Number(p.evaluator_amount || 0); %>
+                                                            <% var selisihReviewer=diajukan - reviewerSetuju; %>
+                                                                <% var selisihEvaluator=diajukan - evaluatorSetuju; %>
 
-                                    <th colspan="3" class="text-center">Reviewer</th>
-                                    <th colspan="3" class="text-center">Evaluator</th>
+                                                                    <% var progress=0; %>
+                                                                        <% var progressClass="bg-secondary" ; %>
+                                                                            <% var label="Menunggu Review" ; %>
+                                                                                <% var badge="bg-info" ; %>
 
-                                    <th rowspan="2" class="text-center align-middle" style="min-width:200px;">Progress
-                                    </th>
-                                    <th rowspan="2" class="text-center align-middle">Status</th>
-                                </tr>
+                                                                                    <% if (p.review_status==='rejected'
+                                                                                        ) { %>
+                                                                                        <% progress=100; %>
+                                                                                            <% progressClass="bg-danger"
+                                                                                                ; %>
+                                                                                                <% label="Ditolak Reviewer"
+                                                                                                    ; %>
+                                                                                                    <% badge="bg-danger"
+                                                                                                        ; %>
+                                                                                                        <% } else if
+                                                                                                            (p.review_status==='approved'
+                                                                                                            &&
+                                                                                                            !p.recommendation)
+                                                                                                            { %>
+                                                                                                            <% progress=75;
+                                                                                                                %>
+                                                                                                                <% progressClass="bg-warning"
+                                                                                                                    ; %>
+                                                                                                                    <% label="Menunggu Evaluasi"
+                                                                                                                        ;
+                                                                                                                        %>
+                                                                                                                        <% badge="bg-warning text-dark"
+                                                                                                                            ;
+                                                                                                                            %>
+                                                                                                                            <% } else
+                                                                                                                                if
+                                                                                                                                (p.recommendation==='reject'
+                                                                                                                                )
+                                                                                                                                {
+                                                                                                                                %>
+                                                                                                                                <% progress=100;
+                                                                                                                                    %>
+                                                                                                                                    <% progressClass="bg-danger"
+                                                                                                                                        ;
+                                                                                                                                        %>
+                                                                                                                                        <% label="Ditolak Evaluator"
+                                                                                                                                            ;
+                                                                                                                                            %>
+                                                                                                                                            <% badge="bg-danger"
+                                                                                                                                                ;
+                                                                                                                                                %>
+                                                                                                                                                <% } else
+                                                                                                                                                    if
+                                                                                                                                                    (p.recommendation==='approve'
+                                                                                                                                                    )
+                                                                                                                                                    {
+                                                                                                                                                    %>
+                                                                                                                                                    <% progress=100;
+                                                                                                                                                        %>
+                                                                                                                                                        <% progressClass="bg-success"
+                                                                                                                                                            ;
+                                                                                                                                                            %>
+                                                                                                                                                            <% label="Disetujui"
+                                                                                                                                                                ;
+                                                                                                                                                                %>
+                                                                                                                                                                <% badge="bg-success"
+                                                                                                                                                                    ;
+                                                                                                                                                                    %>
+                                                                                                                                                                    <% } else
+                                                                                                                                                                        {
+                                                                                                                                                                        %>
+                                                                                                                                                                        <% progress=25;
+                                                                                                                                                                            %>
+                                                                                                                                                                            <% progressClass="bg-primary"
+                                                                                                                                                                                ;
+                                                                                                                                                                                %>
+                                                                                                                                                                                <% label="Menunggu Review"
+                                                                                                                                                                                    ;
+                                                                                                                                                                                    %>
+                                                                                                                                                                                    <% badge="bg-primary"
+                                                                                                                                                                                        ;
+                                                                                                                                                                                        %>
+                                                                                                                                                                                        <% }
+                                                                                                                                                                                            %>
 
-                                <!-- Detail -->
-                                <tr>
-                                    <th class="text-center">Disetujui<br><small>(Rp)</small></th>
-                                    <th class="text-center">Selisih<br><small>(Rp)</small></th>
-                                    <th class="text-center align-middle" style="width:120px;">Catatan</th>
+                                                                                                                                                                                            <% var
+                                                                                                                                                                                                approvedStage=Number(p.approved_stage
+                                                                                                                                                                                                ||
+                                                                                                                                                                                                0);
+                                                                                                                                                                                                %>
+                                                                                                                                                                                                <% var
+                                                                                                                                                                                                    progressPembangunan=approvedStage
+                                                                                                                                                                                                    *
+                                                                                                                                                                                                    25;
+                                                                                                                                                                                                    %>
+                                                                                                                                                                                                    <% var
+                                                                                                                                                                                                        isBansos=(user.rolepemohon==='individu'
+                                                                                                                                                                                                        );
+                                                                                                                                                                                                        %>
 
-                                    <th class="text-center">Disetujui<br><small>(Rp)</small></th>
-                                    <th class="text-center">Selisih<br><small>(Rp)</small></th>
-                                    <th class="text-center align-middle" style="width:120px;">Catatan</th>
-                                </tr>
+                                                                                                                                                                                                        <tr>
+                                                                                                                                                                                                            <td>
+                                                                                                                                                                                                                <%= p.title
+                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                            </td>
+                                                                                                                                                                                                            <td
+                                                                                                                                                                                                                class="text-end">
+                                                                                                                                                                                                                <%= diajukan.toLocaleString('id-ID')
+                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                            </td>
+                                                                                                                                                                                                            <td
+                                                                                                                                                                                                                class="text-end">
+                                                                                                                                                                                                                <%= reviewerSetuju.toLocaleString('id-ID')
+                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                            </td>
+                                                                                                                                                                                                            <td
+                                                                                                                                                                                                                class="text-end">
+                                                                                                                                                                                                                <%= selisihReviewer.toLocaleString('id-ID')
+                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                            </td>
+                                                                                                                                                                                                            <td
+                                                                                                                                                                                                                style="max-width:100px; white-space:normal; word-break:break-word;">
+                                                                                                                                                                                                                <%= p.review_comments
+                                                                                                                                                                                                                    || '-'
+                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                            </td>
+                                                                                                                                                                                                            <td
+                                                                                                                                                                                                                class="text-end">
+                                                                                                                                                                                                                <%= evaluatorSetuju.toLocaleString('id-ID')
+                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                            </td>
+                                                                                                                                                                                                            <td
+                                                                                                                                                                                                                class="text-end">
+                                                                                                                                                                                                                <%= selisihEvaluator.toLocaleString('id-ID')
+                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                            </td>
+                                                                                                                                                                                                            <td
+                                                                                                                                                                                                                style="max-width:100px; white-space:normal; word-break:break-word;">
+                                                                                                                                                                                                                <%= p.evaluation_notes
+                                                                                                                                                                                                                    || '-'
+                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                            </td>
 
-                            </thead>
-                            <tbody>
+                                                                                                                                                                                                            <!-- PROGRESS PERSETUJUAN -->
+                                                                                                                                                                                                            <td>
+                                                                                                                                                                                                                <div
+                                                                                                                                                                                                                    class="progress">
+                                                                                                                                                                                                                    <div class="progress-bar <%= progressClass %>"
+                                                                                                                                                                                                                        role="progressbar"
+                                                                                                                                                                                                                        style="width:<%= progress %>%">
+                                                                                                                                                                                                                        <%= progress
+                                                                                                                                                                                                                            %>
+                                                                                                                                                                                                                            %
+                                                                                                                                                                                                                    </div>
+                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                            </td>
 
-                                <% if (data && data.length> 0) { %>
+                                                                                                                                                                                                            <!-- STATUS -->
+                                                                                                                                                                                                            <td
+                                                                                                                                                                                                                class="text-center">
+                                                                                                                                                                                                                <span
+                                                                                                                                                                                                                    class="badge <%= badge %> px-3 py-2">
+                                                                                                                                                                                                                    <%= label
+                                                                                                                                                                                                                        %>
+                                                                                                                                                                                                                </span>
+                                                                                                                                                                                                            </td>
 
-                                    <% for (var i=0; i < data.length; i++) { var p=data[i]; var
-                                        diajukan=Number(p.request_amount || 0); var
-                                        reviewerSetuju=Number(p.reviewer_amount || 0); var
-                                        evaluatorSetuju=Number(p.evaluator_amount || 0); var selisihReviewer=diajukan -
-                                        reviewerSetuju; var selisihEvaluator=diajukan - evaluatorSetuju; var
-                                        finalDana=evaluatorSetuju> 0 ? evaluatorSetuju : reviewerSetuju;
+                                                                                                                                                                                                            <!-- PROGRESS PEMBANGUNAN -->
+                                                                                                                                                                                                            <td
+                                                                                                                                                                                                                class="text-center">
+                                                                                                                                                                                                                <% if
+                                                                                                                                                                                                                    (isBansos)
+                                                                                                                                                                                                                    {
+                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                                    <small
+                                                                                                                                                                                                                        class="text-muted">-</small>
+                                                                                                                                                                                                                    <% } else
+                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                        %>
+                                                                                                                                                                                                                        <div
+                                                                                                                                                                                                                            class="progress mb-2">
+                                                                                                                                                                                                                            <div class="progress-bar bg-info"
+                                                                                                                                                                                                                                role="progressbar"
+                                                                                                                                                                                                                                style="width:<%= progressPembangunan %>%">
+                                                                                                                                                                                                                                <%= progressPembangunan
+                                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                                                    %
+                                                                                                                                                                                                                            </div>
+                                                                                                                                                                                                                        </div>
+                                                                                                                                                                                                                        <% if
+                                                                                                                                                                                                                            (user.role==='pemohon'
+                                                                                                                                                                                                                            )
+                                                                                                                                                                                                                            {
+                                                                                                                                                                                                                            %>
+                                                                                                                                                                                                                            <%- include('partials/monev/progress_pemohon',
+                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                p:
+                                                                                                                                                                                                                                p,
+                                                                                                                                                                                                                                approvedStage:
+                                                                                                                                                                                                                                approvedStage,
+                                                                                                                                                                                                                                user:
+                                                                                                                                                                                                                                user
+                                                                                                                                                                                                                                })
+                                                                                                                                                                                                                                %>
+                                                                                                                                                                                                                                <% } else
+                                                                                                                                                                                                                                    if
+                                                                                                                                                                                                                                    (user.role==='admin'
+                                                                                                                                                                                                                                    )
+                                                                                                                                                                                                                                    {
+                                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                                                    <%- include('partials/monev/progress_admin',
+                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                        p:
+                                                                                                                                                                                                                                        p,
+                                                                                                                                                                                                                                        approvedStage:
+                                                                                                                                                                                                                                        approvedStage
+                                                                                                                                                                                                                                        })
+                                                                                                                                                                                                                                        %>
+                                                                                                                                                                                                                                        <% } else
+                                                                                                                                                                                                                                            {
+                                                                                                                                                                                                                                            %>
+                                                                                                                                                                                                                                            <small
+                                                                                                                                                                                                                                                class="text-muted">Tahap
+                                                                                                                                                                                                                                                <%= approvedStage
+                                                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                                                                    dari
+                                                                                                                                                                                                                                                    4
+                                                                                                                                                                                                                                            </small>
+                                                                                                                                                                                                                                            <% }
+                                                                                                                                                                                                                                                %>
+                                                                                                                                                                                                                                                <% }
+                                                                                                                                                                                                                                                    %>
+                                                                                                                                                                                                            </td>
 
-                                        var progress = 0;
-                                        var progressClass = "bg-secondary";
-                                        var label = "Menunggu Review";
-                                        var badge = "bg-info";
+                                                                                                                                                                                                        </tr>
 
-                                        if (p.review_status === 'rejected') {
-                                        progress = 100;
-                                        progressClass = "bg-danger";
-                                        label = "Ditolak Reviewer";
-                                        badge = "bg-danger";
-                                        }
-                                        else if (p.review_status === 'approved' && !p.recommendation) {
-                                        progress = 70;
-                                        progressClass = "bg-warning";
-                                        label = "Menunggu Evaluasi";
-                                        badge = "bg-warning text-dark";
-                                        }
-                                        else if (p.recommendation === 'reject') {
-                                        progress = 100;
-                                        progressClass = "bg-danger";
-                                        label = "Ditolak Evaluator";
-                                        badge = "bg-danger";
-                                        }
-                                        else if (p.recommendation === 'approve') {
-                                        progress = 100;
-                                        progressClass = "bg-success";
-                                        label = "Disetujui";
-                                        badge = "bg-success";
-                                        }
-                                        else {
-                                        progress = 30;
-                                        progressClass = "bg-primary";
-                                        label = "Menunggu Review";
-                                        badge = "bg-primary";
-                                        }
-                                        %>
+                                                                                                                                                                                                        <% }
+                                                                                                                                                                                                            %>
+                                                                                                                                                                                                            <% } else
+                                                                                                                                                                                                                {
+                                                                                                                                                                                                                %>
+                                                                                                                                                                                                                <tr>
+                                                                                                                                                                                                                    <td colspan="11"
+                                                                                                                                                                                                                        class="text-center text-muted py-4">
+                                                                                                                                                                                                                        Tidak
+                                                                                                                                                                                                                        ada
+                                                                                                                                                                                                                        data
+                                                                                                                                                                                                                        monitoring
+                                                                                                                                                                                                                    </td>
+                                                                                                                                                                                                                </tr>
+                                                                                                                                                                                                                <% }
+                                                                                                                                                                                                                    %>
 
-                                        <tr>
-
-                                            <td>
-                                                <%= p.title %>
-                                            </td>
-
-                                            <td>
-                                                <%= diajukan.toLocaleString('id-ID') %>
-                                            </td>
-
-                                            <!-- REVIEWER -->
-                                            <td>
-                                                <%= reviewerSetuju.toLocaleString('id-ID') %>
-                                            </td>
-                                            <td>
-                                                <%= selisihReviewer.toLocaleString('id-ID') %>
-                                            </td>
-                                            <td style="max-width:120px; white-space:normal; word-break:break-word;">
-                                                <%= p.review_comments || '-' %>
-                                            </td>
-
-                                            <!-- EVALUATOR -->
-                                            <td>
-                                                <%= evaluatorSetuju.toLocaleString('id-ID') %>
-                                            </td>
-                                            <td>
-                                                <%= selisihEvaluator.toLocaleString('id-ID') %>
-                                            </td>
-                                            <td style="max-width:120px; white-space:normal; word-break:break-word;">
-                                                <%= p.evaluation_notes || '-' %>
-                                            </td>
-
-                                            <!-- PROGRESS -->
-                                            <td>
-                                                <div class="progress">
-                                                    <div class="progress-bar <%= progressClass %>" role="progressbar"
-                                                        style="width:<%= progress %>%">
-                                                        <%= progress %>%
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <!-- STATUS -->
-                                            <td>
-                                                <span class="badge <%= badge %> px-3 py-2">
-                                                    <%= label %>
-                                                </span>
-                                            </td>
-
-                                        </tr>
-
-                                        <% } %>
-
-                                            <% } else { %>
-
-                                                <tr>
-                                                    <td colspan="10" class="text-center text-muted py-4">
-                                                        Tidak ada data monitoring
-                                                    </td>
-                                                </tr>
-
-                                                <% } %>
-
-                            </tbody>
-                        </table>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
             </div>
         </main>
 
+        <!-- Modal Upload Progress (Pemohon) -->
+        <div class="modal fade" id="modalUploadProgress" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Upload Foto Progress</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="formUploadProgress" action="" method="POST" enctype="multipart/form-data">
+                        <div class="modal-body">
+                            <p>Tahap: <strong id="labelStage"></strong></p>
+                            <div class="mb-3">
+                                <label class="form-label">Foto Progress</label>
+                                <input type="file" name="foto_progress" class="form-control" accept="image/*" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary">Upload</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Approve Progress (Admin) -->
+        <div class="modal fade" id="modalApproveProgress" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Setujui Foto Progress</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="formApproveProgress" action="" method="POST">
+                        <div class="modal-body">
+                            <p>Setujui foto progress tahap <strong id="labelApproveStage"></strong>?</p>
+                            <div class="mb-3">
+                                <label class="form-label">Catatan (opsional)</label>
+                                <textarea name="progress_notes" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-success">Setujui</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Reject Progress (Admin) -->
+        <div class="modal fade" id="modalRejectProgress" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Tolak Foto Progress</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="formRejectProgress" action="" method="POST">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Alasan Penolakan</label>
+                                <textarea name="progress_notes" class="form-control" rows="3" required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-danger">Tolak</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <%- include('partials/footer') %>
     </div>
+
+    <script>
+        document.getElementById('modalUploadProgress').addEventListener('show.bs.modal', function (e) {
+            var btn = e.relatedTarget;
+            var appId = btn.getAttribute('data-appid');
+            var stage = btn.getAttribute('data-stage');
+            document.getElementById('formUploadProgress').action = '/users/pemohon/monev/' + appId + '/upload-progress';
+            document.getElementById('labelStage').textContent = stage;
+        });
+
+        document.getElementById('modalApproveProgress').addEventListener('show.bs.modal', function (e) {
+            var btn = e.relatedTarget;
+            var appId = btn.getAttribute('data-appid');
+            var docId = btn.getAttribute('data-docid');
+            var stage = btn.getAttribute('data-stage');
+            document.getElementById('formApproveProgress').action = '/users/admin/monev/' + appId + '/progress/' + docId + '/approve';
+            document.getElementById('labelApproveStage').textContent = stage;
+        });
+
+        document.getElementById('modalRejectProgress').addEventListener('show.bs.modal', function (e) {
+            var btn = e.relatedTarget;
+            var appId = btn.getAttribute('data-appid');
+            var docId = btn.getAttribute('data-docid');
+            document.getElementById('formRejectProgress').action = '/users/admin/monev/' + appId + '/progress/' + docId + '/reject';
+        });
+    </script>

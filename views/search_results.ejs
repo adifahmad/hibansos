@@ -1,0 +1,236 @@
+<%- include('partials/header', { title: "Hasil Pencarian" , user: user }) %>
+
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green">
+            <div class="sb-sidenav-menu">
+                <% if (user.role==='pemohon' ) { %>
+                    <% if (user.rolepemohon==='individu' ) { %>
+                        <%- include('partials/menu/pemohon_individu') %>
+                            <% } else { %>
+                                <%- include('partials/menu/pemohon_lembaga') %>
+                                    <% } %>
+                                        <% } else if (user.role==='reviewer' ) { %>
+                                            <%- include('partials/menu/reviewer') %>
+                                                <% } else if (user.role==='evaluator' ) { %>
+                                                    <%- include('partials/menu/evaluator') %>
+                                                        <% } else if (user.role==='admin' ) { %>
+                                                            <%- include('partials/menu/admin') %>
+                                                                <% } %>
+            </div>
+        </nav>
+    </div>
+
+    <div id="layoutSidenav_content">
+        <main>
+            <div class="container-fluid px-4 mt-4">
+
+                <h1 class="fw-bold mb-1">Hasil Pencarian</h1>
+                <p class="text-muted">
+                    Menampilkan hasil untuk: <strong>"<%= searchQuery %>"</strong>
+                </p>
+
+                <% if (typeof error !=='undefined' && error) { %>
+                    <div class="alert alert-danger">
+                        Terjadi kesalahan saat mencari. Silakan coba lagi.
+                    </div>
+                    <% } %>
+
+                        <% if (aiFilter) { %>
+                            <div class="alert alert-info d-flex align-items-center gap-2 mb-4">
+                                <i class="fas fa-robot"></i>
+                                <span>
+                                    AI menganalisis pencarian Anda sebagai:
+                                    <strong>
+                                        <%= aiFilter.search_type %>
+                                    </strong>
+                                    <% if (aiFilter.status_filter) { %>
+                                        dengan status <strong>
+                                            <%= aiFilter.status_filter %>
+                                        </strong>
+                                        <% } %>
+                                            <% if (aiFilter.category_filter) { %>
+                                                kategori <strong>
+                                                    <%= aiFilter.category_filter %>
+                                                </strong>
+                                                <% } %>
+                                </span>
+                            </div>
+                            <% } %>
+
+                                <!-- HASIL PENGAJUAN -->
+                                <% if (results.pengajuan && results.pengajuan.length> 0) { %>
+                                    <div class="card mb-4">
+                                        <div class="card-header fw-bold">
+                                            <i class="fas fa-file-alt me-1"></i>
+                                            Pengajuan (<%= results.pengajuan.length %> hasil)
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-bordered table-striped align-middle">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Judul</th>
+                                                        <th>Pemohon</th>
+                                                        <th>Kategori</th>
+                                                        <th>Dana</th>
+                                                        <th>Status</th>
+                                                        <th>Aksi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <% results.pengajuan.forEach(p=> { %>
+                                                        <tr>
+                                                            <td>
+                                                                <%= p.title %>
+                                                            </td>
+                                                            <td>
+                                                                <%= p.pemohon_name %>
+                                                            </td>
+                                                            <td>
+                                                                <%= p.category || '-' %>
+                                                            </td>
+                                                            <td>Rp <%= Number(p.request_amount ||
+                                                                    0).toLocaleString('id-ID') %>
+                                                            </td>
+                                                            <td>
+                                                                <span
+                                                                    class="badge <%= p.status === 'approved' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark' %>">
+                                                                    <%= p.status %>
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <% if (user.role==='pemohon' ) { %>
+                                                                    <a href="/users/pemohon/pengajuan/<%= p.application_id %>"
+                                                                        class="btn btn-sm btn-outline-primary">
+                                                                        <i class="fas fa-eye"></i> Lihat
+                                                                    </a>
+                                                                    <% } else if (user.role==='reviewer' ) { %>
+                                                                        <a href="/users/reviewer/pengajuan/<%= p.application_id %>"
+                                                                            class="btn btn-sm btn-outline-primary">
+                                                                            <i class="fas fa-eye"></i> Lihat
+                                                                        </a>
+                                                                        <% } else if (user.role==='evaluator' ) { %>
+                                                                            <a href="/users/evaluator/pengajuan/<%= p.application_id %>"
+                                                                                class="btn btn-sm btn-outline-primary">
+                                                                                <i class="fas fa-eye"></i> Lihat
+                                                                            </a>
+                                                                            <% } else if (user.role==='admin' ) { %>
+                                                                                <a href="/users/admin/pengajuan/<%= p.application_id %>/tracking"
+                                                                                    class="btn btn-sm btn-outline-primary">
+                                                                                    <i class="fas fa-eye"></i> Lihat
+                                                                                </a>
+                                                                                <% } %>
+                                                            </td>
+                                                        </tr>
+                                                        <% }) %>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <% } %>
+
+                                        <!-- HASIL USER (admin only) -->
+                                        <% if (results.users && results.users.length> 0) { %>
+                                            <div class="card mb-4">
+                                                <div class="card-header fw-bold">
+                                                    <i class="fas fa-users me-1"></i>
+                                                    User (<%= results.users.length %> hasil)
+                                                </div>
+                                                <div class="card-body">
+                                                    <table class="table table-bordered table-striped align-middle">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Nama</th>
+                                                                <th>Email</th>
+                                                                <th>Role</th>
+                                                                <th>Organisasi</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <% results.users.forEach(u=> { %>
+                                                                <tr>
+                                                                    <td>
+                                                                        <%= u.name %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= u.email %>
+                                                                    </td>
+                                                                    <td><span class="badge bg-secondary">
+                                                                            <%= u.role %>
+                                                                        </span></td>
+                                                                    <td>
+                                                                        <%= u.organization || '-' %>
+                                                                    </td>
+                                                                </tr>
+                                                                <% }) %>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <% } %>
+
+                                                <!-- HASIL LEGALITAS (admin only) -->
+                                                <% if (results.legalitas && results.legalitas.length> 0) { %>
+                                                    <div class="card mb-4">
+                                                        <div class="card-header fw-bold">
+                                                            <i class="fas fa-file-contract me-1"></i>
+                                                            Legalitas (<%= results.legalitas.length %> hasil)
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <table
+                                                                class="table table-bordered table-striped align-middle">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Nama</th>
+                                                                        <th>Organisasi</th>
+                                                                        <th>Status</th>
+                                                                        <th>Aksi</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <% results.legalitas.forEach(l=> { %>
+                                                                        <tr>
+                                                                            <td>
+                                                                                <%= l.name %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <%= l.organization || '-' %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <span
+                                                                                    class="badge <%= l.verification_status === 'approved' ? 'bg-success' : l.verification_status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark' %>">
+                                                                                    <%= l.verification_status %>
+                                                                                </span>
+                                                                            </td>
+                                                                            <td>
+                                                                                <a href="/users/admin/legalitas/<%= l.legality_id %>"
+                                                                                    class="btn btn-sm btn-outline-primary">
+                                                                                    <i class="fas fa-eye"></i> Lihat
+                                                                                </a>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <% }) %>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <% } %>
+
+                                                        <!-- TIDAK ADA HASIL -->
+                                                        <% if ((!results.pengajuan || results.pengajuan.length===0) &&
+                                                            (!results.users || results.users.length===0) &&
+                                                            (!results.legalitas || results.legalitas.length===0)) { %>
+                                                            <div class="card">
+                                                                <div class="card-body text-center py-5">
+                                                                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                                                    <h5 class="text-muted">Tidak ada hasil untuk "<%=
+                                                                            searchQuery %>"</h5>
+                                                                    <p class="text-muted">Coba gunakan kata kunci yang
+                                                                        berbeda</p>
+                                                                </div>
+                                                            </div>
+                                                            <% } %>
+
+            </div>
+        </main>
+        <%- include('partials/footer') %>
+    </div>

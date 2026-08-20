@@ -1,0 +1,135 @@
+<%- include('../partials/header', { title: "Pengajuan Bansos" , user }) %>
+
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green">
+
+            <div class="sb-sidenav-menu">
+                <% if (user.role==='pemohon' ) { %>
+
+                    <% if (user.rolepemohon==='individu' ) { %>
+                        <%- include('../partials/menu/pemohon_individu') %>
+                            <% } else { %>
+                                <%- include('../partials/menu/pemohon_lembaga') %>
+                                    <% } %>
+
+                                        <% } else { %>
+
+                                            <%- include('../partials/menu/' + user.role) %>
+
+                                                <% } %>
+            </div>
+
+            <div class="sb-sidenav-footer">
+                <div class="small">Logged in as:</div>
+                <%= user.role %>
+            </div>
+
+        </nav>
+    </div>
+
+    <div id="layoutSidenav_content">
+        <main>
+            <!-- ✅ INI KUNCI: container-fluid FULL WIDTH -->
+            <div class="container-fluid px-4">
+
+                <h1 class="mt-4 fw-bold">Ajukan Bansos</h1>
+                <p class="text-muted">Isi form pengajuan bantuan sosial</p>
+
+                <!-- ❌ TIDAK ADA col-md / max-width -->
+                <form action="/users/pemohon/pengajuan-bansos" method="POST" enctype="multipart/form-data" class="mt-4">
+
+                    <!-- JUDUL -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Judul Proposal</label>
+                        <input type="text" name="title" class="form-control" placeholder="Masukkan judul proposal"
+                            required>
+                    </div>
+
+                    <!-- KATEGORI -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kategori Bansos</label>
+
+                        <select name="category" id="category" class="form-select" required>
+                            <option value="">-- Pilih Kategori --</option>
+
+                            <% if (kategori && kategori.length> 0) { %>
+                                <% kategori.forEach(k=> { %>
+                                    <option value="<%= k.nama_kategori %>">
+                                        <%= k.nama_kategori %>
+                                    </option>
+                                    <% }) %>
+                                        <% } %>
+                        </select>
+                    </div>
+
+                    <!-- DANA (HIDDEN UNTUK SEMENTARA) -->
+                    <div class="mb-3 d-none" id="danaWrapper">
+                        <label class="form-label fw-bold">Jumlah Dana (Rp)</label>
+                        <input type="number" name="requested_amount" id="danaInput" class="form-control"
+                            placeholder="Contoh: 5000000">
+                    </div>
+
+                    <!-- JUMLAH PENERIMA -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Jumlah Penerima</label>
+                        <input type="number" name="beneficiaries_count" class="form-control"
+                            placeholder="Contoh: 100 orang" min="1" required>
+                    </div>
+
+                    <!-- UPLOAD PROPOSAL -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Upload Proposal</label>
+                        <input type="file" name="proposal" class="form-control" accept=".pdf,.jpg,.png" required>
+
+                        <small class="text-muted">Format: PDF / JPG / PNG</small>
+                    </div>
+
+                    <!-- BUTTON -->
+                    <div class="mt-4">
+
+                        <% if (bansosStatus==='approved' ) { %>
+
+                            <button type="submit" class="btn btn-success fw-bold">
+                                <i class="fas fa-paper-plane"></i> Ajukan
+                            </button>
+
+                            <% } else { %>
+
+                                <button type="button" class="btn btn-secondary fw-bold" disabled>
+                                    <i class="fas fa-lock"></i> Belum Bisa Ajukan
+                                </button>
+
+                                <div class="mt-2 text-warning">
+                                    ⚠️ Legalitas bansos Anda belum diverifikasi admin.
+                                </div>
+
+                                <% } %>
+
+                    </div>
+
+                </form>
+
+            </div>
+        </main>
+        <script>
+            const category = document.getElementById('category');
+            const danaWrapper = document.getElementById('danaWrapper');
+            const danaInput = document.getElementById('danaInput');
+
+            category.addEventListener('change', function () {
+
+                const value = this.value.toLowerCase();
+
+                if (value.includes('uang')) {
+                    danaWrapper.classList.remove('d-none');
+                    danaInput.setAttribute('required', true);
+                } else {
+                    danaWrapper.classList.add('d-none');
+                    danaInput.removeAttribute('required');
+                    danaInput.value = '';
+                }
+
+            });
+        </script>
+        <%- include('../partials/footer') %>
+    </div>

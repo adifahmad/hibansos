@@ -1,0 +1,77 @@
+<% if (p.recommendation==='approve' ) { %>
+
+    <% if (!p.ttd_doc_id) { %>
+        <small class="text-muted">Menunggu tanda tangan pemohon</small>
+
+        <% } else if (p.ttd_status==='pending' ) { %>
+            <div class="mb-2">
+                <a href="/uploads/<%= p.ttd_file_path %>" target="_blank" class="btn btn-sm btn-outline-info mb-1">
+                    <i class="fas fa-signature me-1"></i> Lihat TTD
+                </a>
+                <% if (p.ttd_pdf_file_path) { %>
+                    <a href="/uploads/<%= p.ttd_pdf_file_path %>" target="_blank"
+                        class="btn btn-sm btn-outline-primary mb-1">
+                        <i class="fas fa-file-pdf me-1"></i> Download PDF
+                    </a>
+                    <% } %>
+            </div>
+            <form method="POST" action="/users/admin/ttd/<%= p.ttd_doc_id %>/verifikasi">
+                <input type="hidden" name="ttd_status" value="approved">
+                <button type="submit" class="btn btn-sm btn-success mb-1"
+                    onclick="return confirm('Verifikasi tanda tangan ini?')">
+                    <i class="fas fa-check me-1"></i> Verifikasi TTD
+                </button>
+            </form>
+            <form method="POST" action="/users/admin/ttd/<%= p.ttd_doc_id %>/verifikasi">
+                <input type="hidden" name="ttd_status" value="rejected">
+                <button type="submit" class="btn btn-sm btn-danger mb-1"
+                    onclick="return confirm('Tolak tanda tangan ini?')">
+                    <i class="fas fa-times me-1"></i> Tolak TTD
+                </button>
+            </form>
+
+            <% } else if (p.ttd_status==='rejected' ) { %>
+                <span class="badge bg-danger mb-2">TTD Ditolak</span><br>
+                <small class="text-muted">Menunggu TTD ulang dari pemohon</small>
+
+                <% } else if (p.ttd_status==='approved' ) { %>
+                    <span class="badge bg-success mb-2">TTD Terverifikasi ✓</span>
+                    <% if (p.ttd_pdf_file_path) { %>
+                        <a href="/uploads/<%= p.ttd_pdf_file_path %>" target="_blank"
+                            class="btn btn-sm btn-outline-primary mb-2 d-block">
+                            <i class="fas fa-file-pdf me-1"></i> Download PDF TTD
+                        </a>
+                        <% } %>
+                            <hr class="my-1">
+                            <small class="text-muted d-block mb-1">Tahap <%= approvedStage %> dari 4</small>
+
+                            <% if (p.pending_doc_id) { %>
+                                <a href="/uploads/<%= p.pending_file_path %>" target="_blank"
+                                    class="btn btn-sm btn-outline-info mb-1">
+                                    <i class="fas fa-image me-1"></i> Lihat Foto Tahap <%= p.pending_stage %>
+                                </a>
+                                <br>
+                                <button class="btn btn-sm btn-success mb-1" data-bs-toggle="modal"
+                                    data-bs-target="#modalApproveProgress" data-appid="<%= p.application_id %>"
+                                    data-docid="<%= p.pending_doc_id %>" data-stage="<%= p.pending_stage %>">
+                                    <i class="fas fa-check me-1"></i> Setujui
+                                </button>
+                                <br>
+                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                    data-bs-target="#modalRejectProgress" data-appid="<%= p.application_id %>"
+                                    data-docid="<%= p.pending_doc_id %>">
+                                    <i class="fas fa-times me-1"></i> Tolak
+                                </button>
+
+                                <% } else if (approvedStage>= 4) { %>
+                                    <span class="badge bg-success px-3 py-2">Progress Selesai</span>
+
+                                    <% } else { %>
+                                        <small class="text-muted">Belum ada foto progress</small>
+                                        <% } %>
+
+                                            <% } %>
+
+                                                <% } else { %>
+                                                    <small class="text-muted">-</small>
+                                                    <% } %>

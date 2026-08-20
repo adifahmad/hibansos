@@ -1,0 +1,430 @@
+<%- include('../partials/header', { title: "Tanda Tangan Persetujuan" , user }) %>
+
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion spotify-green">
+            <div class="sb-sidenav-menu">
+                <% if (user.rolepemohon==='individu' ) { %>
+                    <%- include('../partials/menu/pemohon_individu') %>
+                        <% } else { %>
+                            <%- include('../partials/menu/pemohon_lembaga') %>
+                                <% } %>
+            </div>
+        </nav>
+    </div>
+
+    <div id="layoutSidenav_content">
+        <main>
+            <div class="container-fluid px-4 mt-4">
+
+                <h1 class="fw-bold mb-1">Tanda Tangan Persetujuan</h1>
+                <p class="text-muted">Tanda tangani persetujuan penerimaan dana hibah/bansos.</p>
+
+                <% if (locals.query && query.success) { %>
+                    <div class="alert alert-success">Tanda tangan berhasil disimpan!</div>
+                    <% } %>
+
+                        <% if (locals.query && query.error) { %>
+                            <div class="alert alert-danger">Terjadi kesalahan, silakan coba lagi.</div>
+                            <% } %>
+
+                                <!-- INFO PENGAJUAN -->
+                                <div class="card mb-4">
+                                    <div class="card-header fw-bold">
+                                        <i class="fas fa-file-alt me-1"></i> Detail Pengajuan
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td width="200"><b>Judul</b></td>
+                                                <td>
+                                                    <%= data.title %>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><b>Nama Pemohon</b></td>
+                                                <td>
+                                                    <%= data.name %>
+                                                </td>
+                                            </tr>
+                                            <% if (data.organization) { %>
+                                                <tr>
+                                                    <td><b>Organisasi</b></td>
+                                                    <td>
+                                                        <%= data.organization %>
+                                                    </td>
+                                                </tr>
+                                                <% } %>
+                                                    <tr>
+                                                        <td><b>Dana Diajukan</b></td>
+                                                        <td>Rp <%= Number(data.request_amount ||
+                                                                0).toLocaleString('id-ID') %>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><b>Dana Disetujui</b></td>
+                                                        <td class="text-success fw-bold">
+                                                            Rp <%= Number(data.approved_amount ||
+                                                                0).toLocaleString('id-ID') %>
+                                                        </td>
+                                                    </tr>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <% if (ttd) { %>
+                                    <!-- SUDAH TTD -->
+                                    <div class="card mb-4">
+                                        <div class="card-header fw-bold text-success">
+                                            <i class="fas fa-check-circle me-1"></i> Tanda Tangan Sudah Diterima
+                                        </div>
+                                        <div class="card-body text-center">
+
+                                            <!-- hidden untuk generate PDF -->
+                                            <img id="ttdImgPDF" src="/uploads/<%= ttd.file_path %>"
+                                                crossorigin="anonymous" style="display:none;">
+
+                                            <img src="/uploads/<%= ttd.file_path %>" class="img-fluid border rounded"
+                                                style="max-height:200px;">
+
+                                            <p class="text-muted mt-2">
+                                                <small>Ditandatangani pada <%= new
+                                                        Date(ttd.uploaded_at).toLocaleDateString('id-ID', {
+                                                        day:'numeric', month:'long', year:'numeric' }) %></small>
+                                            </p>
+
+                                            <div class="d-flex justify-content-center gap-2 mt-3">
+                                                <button onclick="downloadPDF()" class="btn btn-primary">
+                                                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                                                </button>
+                                                <a href="/users/pemohon/ttd/<%= data.application_id %>"
+                                                    class="btn btn-outline-warning">
+                                                    <i class="fas fa-redo me-1"></i> Tanda Tangan Ulang
+                                                </a>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <% } else { %>
+
+                                        <!-- FORM TTD -->
+                                        <div class="card mb-4">
+                                            <div class="card-header fw-bold">
+                                                <i class="fas fa-signature me-1"></i> Tanda Tangan
+                                            </div>
+                                            <div class="card-body">
+
+                                                <ul class="nav nav-tabs mb-4" id="ttdTab">
+                                                    <li class="nav-item">
+                                                        <button class="nav-link active" id="tab-canvas-btn"
+                                                            onclick="showTab('canvas')">
+                                                            <i class="fas fa-pen me-1"></i> Gambar Tanda Tangan
+                                                        </button>
+                                                    </li>
+                                                    <li class="nav-item">
+                                                        <button class="nav-link" id="tab-upload-btn"
+                                                            onclick="showTab('upload')">
+                                                            <i class="fas fa-upload me-1"></i> Upload Foto/Scan
+                                                        </button>
+                                                    </li>
+                                                </ul>
+
+                                                <!-- TAB CANVAS -->
+                                                <div id="tab-canvas">
+                                                    <p class="text-muted small">Tanda tangan langsung di kotak di bawah
+                                                        ini.</p>
+
+                                                    <canvas id="ttdCanvas"
+                                                        style="border:2px solid #dee2e6; border-radius:8px; cursor:crosshair; width:100%; height:200px; touch-action:none;">
+                                                    </canvas>
+
+                                                    <div class="mt-2 d-flex gap-2">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                            onclick="clearCanvas()">
+                                                            <i class="fas fa-eraser me-1"></i> Hapus
+                                                        </button>
+                                                    </div>
+
+                                                    <form id="formCanvas"
+                                                        action="/users/pemohon/ttd/<%= data.application_id %>/upload"
+                                                        method="POST">
+                                                        <input type="hidden" name="ttd_base64" id="ttd_base64">
+                                                        <div class="mt-3">
+                                                            <div class="form-check mb-3">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                    id="agreeCanvas" required>
+                                                                <label class="form-check-label" for="agreeCanvas">
+                                                                    Saya menyetujui penerimaan dana dan bertanggung
+                                                                    jawab
+                                                                    atas penggunaannya sesuai proposal yang diajukan.
+                                                                </label>
+                                                            </div>
+                                                            <button type="button" class="btn btn-success fw-bold"
+                                                                onclick="submitCanvas()">
+                                                                <i class="fas fa-paper-plane me-1"></i> Kirim Tanda
+                                                                Tangan
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+
+                                                <!-- TAB UPLOAD -->
+                                                <div id="tab-upload" style="display:none;">
+                                                    <p class="text-muted small">Upload foto atau scan tanda tangan Anda.
+                                                    </p>
+
+                                                    <form id="formUpload"
+                                                        action="/users/pemohon/ttd/<%= data.application_id %>/upload"
+                                                        method="POST" enctype="multipart/form-data">
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-bold">File Tanda Tangan</label>
+                                                            <input type="file" name="ttd_file" class="form-control"
+                                                                accept="image/*" required onchange="previewTTD(this)">
+                                                            <small class="text-muted">Format: JPG, PNG (bukan
+                                                                PDF)</small>
+                                                        </div>
+
+                                                        <div id="previewBox" class="mb-3" style="display:none;">
+                                                            <img id="previewImg" class="border rounded"
+                                                                style="max-height:200px;">
+                                                        </div>
+
+                                                        <div class="form-check mb-3">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                id="agreeUpload" required>
+                                                            <label class="form-check-label" for="agreeUpload">
+                                                                Saya menyetujui penerimaan dana dan bertanggung jawab
+                                                                atas penggunaannya sesuai proposal yang diajukan.
+                                                            </label>
+                                                        </div>
+
+                                                        <button type="submit" class="btn btn-success fw-bold">
+                                                            <i class="fas fa-paper-plane me-1"></i> Kirim Tanda Tangan
+                                                        </button>
+
+                                                    </form>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+                                        <% } %>
+
+                                            <a href="/users/monev" class="btn btn-secondary">
+                                                <i class="fas fa-arrow-left me-1"></i> Kembali ke Monev
+                                            </a>
+
+            </div>
+        </main>
+
+        <%- include('../partials/footer') %>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        (function () {
+            // =============== TAB ===============
+            function showTab(tab) {
+                document.getElementById('tab-canvas').style.display = tab === 'canvas' ? 'block' : 'none';
+                document.getElementById('tab-upload').style.display = tab === 'upload' ? 'block' : 'none';
+                document.getElementById('tab-canvas-btn').classList.toggle('active', tab === 'canvas');
+                document.getElementById('tab-upload-btn').classList.toggle('active', tab === 'upload');
+            }
+
+            // =============== CANVAS ===============
+            let canvas, ctx, drawing = false;
+
+            function initCanvas() {
+                canvas = document.getElementById('ttdCanvas');
+                if (!canvas) return;
+
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width || canvas.offsetWidth || 800;
+                canvas.height = 200;
+
+                ctx = canvas.getContext('2d');
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                canvas.addEventListener('mousedown', startDraw);
+                canvas.addEventListener('mousemove', draw);
+                canvas.addEventListener('mouseup', stopDraw);
+                canvas.addEventListener('mouseleave', stopDraw);
+                canvas.addEventListener('touchstart', startDraw, { passive: false });
+                canvas.addEventListener('touchmove', draw, { passive: false });
+                canvas.addEventListener('touchend', stopDraw);
+            }
+
+            function getPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: (clientX - rect.left) * scaleX,
+                    y: (clientY - rect.top) * scaleY
+                };
+            }
+
+            function startDraw(e) {
+                e.preventDefault();
+                drawing = true;
+                const pos = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            }
+
+            function draw(e) {
+                e.preventDefault();
+                if (!drawing) return;
+                const pos = getPos(e);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            }
+
+            function stopDraw() { drawing = false; }
+
+            function clearCanvas() {
+                if (!ctx) return;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            function isCanvasEmpty() {
+                const pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                for (let i = 0; i < pixelData.length; i += 4) {
+                    if (pixelData[i] !== 255 || pixelData[i + 1] !== 255 || pixelData[i + 2] !== 255) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            function submitCanvas() {
+                if (!document.getElementById('agreeCanvas').checked) {
+                    alert('Harap centang persetujuan terlebih dahulu.');
+                    return;
+                }
+                if (isCanvasEmpty()) {
+                    alert('Harap buat tanda tangan terlebih dahulu.');
+                    return;
+                }
+                document.getElementById('ttd_base64').value = canvas.toDataURL('image/png');
+                document.getElementById('formCanvas').submit();
+            }
+
+            function previewTTD(input) {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        document.getElementById('previewImg').src = e.target.result;
+                        document.getElementById('previewBox').style.display = 'block';
+                    };
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+
+            function downloadPDF() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFontSize(16);
+                doc.setFont('helvetica', 'bold');
+                doc.text('SURAT PERSETUJUAN PENERIMAAN DANA', 105, 20, { align: 'center' });
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'normal');
+                doc.text('Sistem Hibah & Bansos', 105, 28, { align: 'center' });
+                doc.setLineWidth(0.5);
+                doc.line(15, 33, 195, 33);
+
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Detail Pengajuan', 15, 42);
+
+                const details = [
+                    ['Judul', '<%= data.title %>'],
+                    ['Nama Pemohon', '<%= data.name %>'],
+                    ['Organisasi', '<%= data.organization || "-" %>'],
+                    ['Dana Diajukan', 'Rp <%= Number(data.request_amount || 0).toLocaleString("id-ID") %>'],
+                    ['Dana Disetujui', 'Rp <%= Number(data.approved_amount || 0).toLocaleString("id-ID") %>'],
+                ];
+
+                let y = 50;
+                details.forEach(([label, value]) => {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(label + ':', 15, y);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(value, 70, y);
+                    y += 8;
+                });
+
+                y += 5;
+                doc.line(15, y, 195, y);
+                y += 8;
+                doc.setFont('helvetica', 'bold');
+                doc.text('Pernyataan Persetujuan', 15, y);
+                y += 8;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                const pernyataan = doc.splitTextToSize(
+                    'Saya yang bertanda tangan di bawah ini menyatakan telah menerima dan menyetujui penerimaan dana hibah/bansos sebagaimana tercantum di atas, dan bertanggung jawab atas penggunaannya sesuai proposal yang telah diajukan.',
+                    175
+                );
+                doc.text(pernyataan, 15, y);
+                y += pernyataan.length * 6 + 10;
+
+                const ttdImg = document.getElementById('ttdImgPDF');
+                if (ttdImg) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.text('Tanda Tangan Pemohon:', 15, y);
+                    y += 5;
+                    try {
+                        const imgCanvas = document.createElement('canvas');
+                        imgCanvas.width = 300;
+                        imgCanvas.height = 100;
+                        const imgCtx = imgCanvas.getContext('2d');
+                        imgCtx.drawImage(ttdImg, 0, 0, 300, 100);
+                        const imgData = imgCanvas.toDataURL('image/png');
+                        doc.addImage(imgData, 'PNG', 15, y, 80, 30);
+                        y += 35;
+                    } catch (e) {
+                        doc.text('[Tanda tangan tersimpan di sistem]', 15, y);
+                        y += 10;
+                    }
+                }
+
+                const tgl = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.text('Ditandatangani pada: ' + tgl, 15, y);
+                doc.line(15, 285, 195, 285);
+                doc.setFontSize(8);
+                doc.text('Dokumen ini digenerate secara otomatis oleh sistem.', 105, 290, { align: 'center' });
+                doc.save('persetujuan-<%= data.application_id %>.pdf');
+            }
+
+            // Expose ke global scope biar bisa dipanggil dari onclick HTML
+            window.showTab = showTab;
+            window.clearCanvas = clearCanvas;
+            window.submitCanvas = submitCanvas;
+            window.previewTTD = previewTTD;
+            window.downloadPDF = downloadPDF;
+
+            // Init
+            document.addEventListener('DOMContentLoaded', function () {
+                setTimeout(initCanvas, 100);
+            });
+            window.addEventListener('resize', function () {
+                setTimeout(initCanvas, 100);
+            });
+
+        })();
+    </script>

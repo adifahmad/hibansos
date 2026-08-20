@@ -7,6 +7,9 @@ const { createNotification } = require('../helpers/notification');
 
 async function renderProfile(req, res, db) {
 
+  const userId = req.session.user.usersid;
+
+  // ================= USER =================
   const userResult = await db.query(`
     SELECT
       userid,
@@ -19,33 +22,50 @@ async function renderProfile(req, res, db) {
       address
     FROM users
     WHERE userid = $1
-  `, [req.session.user.usersid]);
+  `, [userId]);
 
+  // ================= HIBAH =================
   const legalitasResult = await db.query(`
     SELECT *
     FROM institution_legalities
     WHERE user_id = $1
     ORDER BY created_at DESC
     LIMIT 1
-  `, [req.session.user.usersid]);
+  `, [userId]);
 
+  const legalitas = legalitasResult.rows[0] || null;
+
+  // ================= BANSOS =================
+  const bansosResult = await db.query(`
+    SELECT *
+    FROM bansos_legalities
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1
+  `, [userId]);
+
+  const bansosLegalitas = bansosResult.rows[0] || null;
+
+  // ================= DOCUMENTS =================
   const documentsResult = await db.query(`
   SELECT
     documents_id,
     file_name,
     file_path,
-    file_type,
+    document_type,
     uploaded_at
   FROM documents
   WHERE uploaded_by = $1
   AND application_id IS NULL
   ORDER BY uploaded_at DESC
-`, [req.session.user.usersid])
+`, [userId]);
 
+  // ================= RENDER =================
   res.render('profile/edit', {
     user: req.session.user,
     data: userResult.rows[0],
-    legalitas: legalitasResult.rows[0] || null,
+    legalitas,
+    bansosLegalitas,
     documents: documentsResult.rows
   });
 }
@@ -63,14 +83,22 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 const uploadLegalitas = upload.fields([
+  // 🔥 HIBAH
   { name: 'akta_file', maxCount: 1 },
   { name: 'nib_file', maxCount: 1 },
-  { name: 'npwp_file', maxCount: 1 }
+  { name: 'npwp_file', maxCount: 1 },
+
+  // 🔥 BANSOS
+  { name: 'ktp', maxCount: 1 },
+  { name: 'kk', maxCount: 1 },
+  { name: 'sktm', maxCount: 1 },
+  { name: 'foto_rumah', maxCount: 1 }
 ]);
 
 const uploadPengajuan = upload.fields([
   { name: 'document', maxCount: 1 },
-  { name: 'location_photos', maxCount: 4 }
+  { name: 'location_photos', maxCount: 4 },
+  { name: 'proposal', maxCount: 1 }
 ]);
 
 module.exports = function (db) {
@@ -547,6 +575,46 @@ module.exports = function (db) {
     }
   });
 
+  router.get('/pemohon/pengajuan-bansos', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'pemohon') {
+      return res.redirect('/login');
+    }
+
+    const userId = req.session.user.usersid;
+
+    try {
+
+      const legalitas = await db.query(`
+      SELECT verification_status
+      FROM bansos_legalities
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [userId]);
+
+      if (legalitas.rows.length === 0) {
+        return res.redirect('/users/pemohon/legalitas');
+      }
+
+      const bansosStatus = legalitas.rows[0].verification_status;
+
+      const kategori = await db.query(`
+      SELECT * FROM kategori_bansos
+      ORDER BY nama_kategori ASC
+    `);
+
+      res.render('pemohon-individu/pengajuan_bansos', {
+        user: req.session.user,
+        kategori: kategori.rows,
+        bansosStatus
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('/users/pemohon/profile');
+    }
+  });
+
 
   router.post(
     '/pemohon/pengajuan-baru',
@@ -651,6 +719,131 @@ module.exports = function (db) {
     }
   );
 
+  router.post(
+    '/pemohon/pengajuan-bansos',
+    uploadPengajuan,
+    async (req, res) => {
+
+      if (!req.session.user || req.session.user.role !== 'pemohon') {
+        return res.redirect('/login');
+      }
+
+      try {
+
+        const {
+          title,
+          category,
+          beneficiaries_count,
+          requested_amount
+        } = req.body;
+
+        if (category.toLowerCase().includes('uang') && !requested_amount) {
+          return res.send('Jumlah dana wajib diisi untuk kategori uang');
+        }
+
+        const appResult = await db.query(`
+        INSERT INTO applications 
+          (user_id, title, category, beneficiaries_count, request_amount,
+           status, submission_date, created_at)
+        VALUES ($1, $2, $3, $4, $5,
+                'submitted', NOW(), NOW())
+        RETURNING application_id
+      `, [
+          req.session.user.usersid,
+          title,
+          category,
+          beneficiaries_count,
+          requested_amount || null // 🔥 AMAN
+        ]);
+
+        const applicationId = appResult.rows[0].application_id;
+
+        // notif reviewer
+        const reviewers = await db.query(`
+        SELECT userid FROM users WHERE role = 'reviewer'
+      `);
+
+        for (const reviewer of reviewers.rows) {
+          await createNotification(db, {
+            user_id: reviewer.userid,
+            title: 'Pengajuan Bansos Masuk',
+            message: `Proposal "${title}" menunggu review.`,
+            link: `/users/reviewer/pengajuan/${applicationId}`
+          });
+        }
+
+        // dokumen proposal
+        if (req.files && req.files.proposal) {
+          const file = req.files.proposal[0];
+
+          await db.query(`
+          INSERT INTO documents
+            (application_id, file_name, file_path, file_type, uploaded_by, uploaded_at)
+          VALUES ($1, $2, $3, $4, $5, NOW())
+        `, [
+            applicationId,
+            file.originalname,
+            file.filename,
+            file.mimetype,
+            req.session.user.usersid
+          ]);
+        }
+
+        res.redirect('/users/pemohon/pengajuan-saya-bansos');
+
+      } catch (err) {
+        console.error('Insert bansos error:', err);
+        res.redirect('/users/pemohon/pengajuan-bansos');
+      }
+    }
+  );
+
+  router.get('/pemohon/pengajuan-bansos/:id', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'pemohon') {
+      return res.redirect('/login');
+    }
+
+    const userId = req.session.user.usersid;
+    const { id } = req.params;
+
+    try {
+
+      const result = await db.query(`
+      SELECT 
+        a.*,
+
+        CASE
+          WHEN a.status = 'draft' THEN 'Draft'
+          WHEN a.status = 'submitted' THEN 'Menunggu Review'
+          WHEN a.status = 'reviewed' THEN 'Menunggu Evaluasi'
+          WHEN a.status = 'approved' THEN 'Disetujui'
+          WHEN a.status = 'rejected' THEN 'Ditolak'
+          ELSE 'Diproses'
+        END AS status_label
+
+      FROM applications a
+      WHERE a.application_id = $1
+      AND a.user_id = $2
+    `, [id, userId]);
+
+      const doc = await db.query(`
+      SELECT *
+      FROM documents
+      WHERE application_id = $1
+      LIMIT 1
+    `, [id]);
+
+      res.render('pemohon-individu/detail_pengajuan_bansos', {
+        user: req.session.user,
+        data: result.rows[0],
+        document: doc.rows[0]
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('/users/pemohon/pengajuan-saya-bansos');
+    }
+  });
 
   router.get('/pemohon/pengajuan-saya', async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'pemohon') {
@@ -711,6 +904,51 @@ module.exports = function (db) {
     } catch (err) {
       console.error('Pengajuan saya error:', err);
       res.redirect('/pemohon/dashboard');
+    }
+  });
+
+  router.get('/pemohon/pengajuan-saya-bansos', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'pemohon') {
+      return res.redirect('/login');
+    }
+
+    const userId = req.session.user.usersid;
+
+    try {
+
+      const result = await db.query(`
+      SELECT 
+        a.application_id,
+        a.title,
+        a.category,
+        a.beneficiaries_count AS jumlah_penerima,
+        a.status,
+        a.submission_date,
+        a.created_at,
+
+        -- 🔥 mapping status biar sama kayak hibah
+        CASE
+          WHEN a.status = 'draft' THEN 'Draft'
+          WHEN a.status = 'submitted' THEN 'Menunggu Review'
+          WHEN a.status = 'reviewed' THEN 'Menunggu Evaluasi'
+          WHEN a.status = 'approved' THEN 'Disetujui'
+          WHEN a.status = 'rejected' THEN 'Ditolak'
+          ELSE 'Diproses'
+        END AS status_label
+
+      FROM applications a
+      WHERE a.user_id = $1
+      ORDER BY a.created_at DESC
+    `, [userId]);
+
+      res.render('pemohon-individu/daftar_pengajuan_bansos', {
+        user: req.session.user,
+        data: result.rows
+      });
+
+    } catch (err) {
+      console.error('ERROR DAFTAR BANSOS:', err);
+      res.redirect('/users/pemohon/profile');
     }
   });
 
@@ -930,6 +1168,43 @@ module.exports = function (db) {
     }
 
     try {
+
+      const userId = req.session.user.usersid;
+
+      // ================= BANSOS =================
+      if (req.session.user.rolepemohon === 'individu') {
+
+        const userId = req.session.user.usersid;
+
+        // ambil legalitas bansos
+        const legalitasResult = await db.query(`
+    SELECT *
+    FROM bansos_legalities
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1
+  `, [userId]);
+
+        const legalitas = legalitasResult.rows[0] || null;
+
+        // ambil dokumen
+        const documentsResult = await db.query(`
+    SELECT *
+    FROM documents
+    WHERE uploaded_by = $1
+    AND document_type IS NOT NULL
+    ORDER BY uploaded_at DESC
+  `, [userId]);
+
+        return res.render('pemohon-individu/legalitas_bansos', {
+          user: req.session.user,
+          legalitas, // 🔥 INI YANG KURANG
+          documents: documentsResult.rows
+        });
+      }
+
+      // ================= HIBAH (ASLI LO, GAK DIUBAH) =================
+
       // 1️⃣ ambil legalitas terakhir
       const legalitasResult = await db.query(`
       SELECT *
@@ -937,11 +1212,11 @@ module.exports = function (db) {
       WHERE user_id = $1
       ORDER BY created_at DESC
       LIMIT 1
-    `, [req.session.user.usersid]);
+    `, [userId]);
 
       const legalitas = legalitasResult.rows[0] || null;
 
-      // 2️⃣ ambil dokumen pendukung (akta, nib, npwp, dll)
+      // 2️⃣ ambil dokumen pendukung
       const documentsResult = await db.query(`
       SELECT
         file_name,
@@ -951,9 +1226,9 @@ module.exports = function (db) {
       FROM documents
       WHERE uploaded_by = $1
       ORDER BY uploaded_at DESC
-    `, [req.session.user.usersid]);
+    `, [userId]);
 
-      // 3️⃣ render
+      // 3️⃣ render (TETAP)
       res.render('pemohon/legalitas_form', {
         user: req.session.user,
         legalitas,
@@ -971,25 +1246,69 @@ module.exports = function (db) {
     '/pemohon/legalitas',
     uploadLegalitas,
     async (req, res) => {
+
       if (!req.session.user || req.session.user.role !== 'pemohon') {
         return res.redirect('/login');
       }
 
-      const {
-        deed_number,
-        deed_date,
-        notary_name,
-        kemenkumham_sk_number,
-        kemenkumham_sk_date,
-        nib,
-        nib_issue_date,
-        oss_status,
-        npwp,
-        npwp_status
-      } = req.body;
+      const userId = req.session.user.usersid;
 
       try {
-        // ================= SIMPAN / UPDATE LEGALITAS =================
+
+        // ================= BANSOS (SIMPLE) =================
+        if (req.session.user.rolepemohon === 'individu') {
+
+          const { nik, no_kk } = req.body;
+
+          // simpan / update bansos
+          await db.query(`
+          INSERT INTO bansos_legalities (user_id, nik, no_kk)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (user_id)
+          DO UPDATE SET
+            nik = EXCLUDED.nik,
+            no_kk = EXCLUDED.no_kk,
+            updated_at = NOW()
+        `, [userId, nik, no_kk]);
+
+          const save = async (file, type) => {
+            if (!file) return;
+
+            await db.query(`
+            INSERT INTO documents
+            (file_name, file_path, document_type, uploaded_by)
+            VALUES ($1,$2,$3,$4)
+          `, [
+              file.originalname,
+              file.filename,
+              type,
+              userId
+            ]);
+          };
+
+          await save(req.files?.ktp?.[0], 'ktp');
+          await save(req.files?.kk?.[0], 'kk');
+          await save(req.files?.sktm?.[0], 'sktm');
+          await save(req.files?.foto_rumah?.[0], 'foto_rumah');
+
+          return res.redirect(`/users/${req.session.user.role}/profile`);
+        }
+
+        // ================= HIBAH (ASLI LO) =================
+
+        const {
+          deed_number,
+          deed_date,
+          notary_name,
+          kemenkumham_sk_number,
+          kemenkumham_sk_date,
+          nib,
+          nib_issue_date,
+          oss_status,
+          npwp,
+          npwp_status
+        } = req.body;
+
         const legalitas = await db.query(`
         INSERT INTO institution_legalities (
           user_id,
@@ -1025,7 +1344,7 @@ module.exports = function (db) {
           updated_at = NOW()
         RETURNING legality_id
       `, [
-          req.session.user.usersid,
+          userId,
           deed_number,
           deed_date || null,
           notary_name,
@@ -1040,17 +1359,14 @@ module.exports = function (db) {
 
         const legalityId = legalitas.rows[0].legality_id;
 
-        // ================= SIMPAN FILE LEGALITAS =================
         const saveFile = async (file, type) => {
           if (!file) return;
 
-          // 🔴 HAPUS FILE LAMA DENGAN TYPE SAMA (BIAR GA DOBEL)
           await db.query(`
           DELETE FROM documents
           WHERE legality_id = $1 AND file_type = $2
         `, [legalityId, type]);
 
-          // ✅ SIMPAN FILE BARU (PAKAI legality_id)
           await db.query(`
           INSERT INTO documents (
             legality_id,
@@ -1066,7 +1382,7 @@ module.exports = function (db) {
             file.originalname,
             file.filename,
             type,
-            req.session.user.usersid
+            userId
           ]);
         };
 
@@ -1323,44 +1639,107 @@ module.exports = function (db) {
     }
 
     try {
+      let whereClause = '';
+      let queryParams = [];
+
+      if (req.session.user.role === 'pemohon') {
+        whereClause = 'WHERE a.user_id = $1';
+        queryParams = [req.session.user.usersid];
+      }
 
       const result = await db.query(`
-      SELECT
-        a.application_id,
-        a.title,
-        a.request_amount,
-        a.status,
+        SELECT
+            a.application_id,
+            a.title,
+            a.request_amount,
+            a.status,
 
-        -- reviewer
-        r.review_status,
-        r.comments AS review_comments,
-        r.approved_amount AS reviewer_amount,
+            -- reviewer
+            r.review_status,
+            r.comments AS review_comments,
+            r.approved_amount AS reviewer_amount,
 
-        -- evaluator
-        e.recommendation,
-        e.evaluation_notes,
-        e.approved_amount AS evaluator_amount
+            -- evaluator
+            e.recommendation,
+            e.evaluation_notes,
+            e.approved_amount AS evaluator_amount,
 
-      FROM applications a
+            -- progress (approved stages)
+            COALESCE(prog.approved_stage, 0) AS approved_stage,
 
-      LEFT JOIN LATERAL (
-        SELECT *
-        FROM reviews
-        WHERE application_id = a.application_id
-        ORDER BY reviewed_at DESC
-        LIMIT 1
-      ) r ON true
+            -- progress pending
+            pend.documents_id AS pending_doc_id,
+            pend.file_path AS pending_file_path,
+            pend.progress_stage AS pending_stage,
+            pend.uploaded_at AS pending_uploaded_at,
 
-      LEFT JOIN LATERAL (
-        SELECT *
-        FROM evaluations
-        WHERE application_id = a.application_id
-        ORDER BY evaluated_at DESC
-        LIMIT 1
-      ) e ON true
+            -- TTD
+            ttd.documents_id AS ttd_doc_id,
+            ttd.file_path AS ttd_file_path,
+            ttd.ttd_status,
+            ttd.uploaded_at AS ttd_uploaded_at,
 
-      ORDER BY a.created_at DESC
-    `);
+            -- TTD PDF
+            ttd_pdf.documents_id AS ttd_pdf_doc_id,
+            ttd_pdf.file_path AS ttd_pdf_file_path
+
+        FROM applications a
+
+        LEFT JOIN LATERAL (
+            SELECT *
+            FROM reviews
+            WHERE application_id = a.application_id
+            ORDER BY reviewed_at DESC
+            LIMIT 1
+        ) r ON true
+
+        LEFT JOIN LATERAL (
+            SELECT *
+            FROM evaluations
+            WHERE application_id = a.application_id
+            ORDER BY evaluated_at DESC
+            LIMIT 1
+        ) e ON true
+
+        LEFT JOIN LATERAL (
+            SELECT MAX(progress_stage) AS approved_stage
+            FROM documents
+            WHERE application_id = a.application_id
+              AND document_type = 'progress'
+              AND progress_status = 'approved'
+        ) prog ON true
+
+        LEFT JOIN LATERAL (
+            SELECT documents_id, file_path, progress_stage, uploaded_at
+            FROM documents
+            WHERE application_id = a.application_id
+              AND document_type = 'progress'
+              AND progress_status = 'pending'
+            ORDER BY uploaded_at DESC
+            LIMIT 1
+        ) pend ON true
+
+        LEFT JOIN LATERAL (
+            SELECT documents_id, file_path, ttd_status, uploaded_at
+            FROM documents
+            WHERE application_id = a.application_id
+              AND document_type = 'ttd'
+            ORDER BY uploaded_at DESC
+            LIMIT 1
+        ) ttd ON true
+
+        LEFT JOIN LATERAL (
+            SELECT documents_id, file_path
+            FROM documents
+            WHERE application_id = a.application_id
+              AND document_type = 'ttd_pdf'
+            ORDER BY uploaded_at DESC
+            LIMIT 1
+        ) ttd_pdf ON true
+
+        ${whereClause}
+        ORDER BY a.created_at DESC
+      `, queryParams);
 
       res.render('monev', {
         user: req.session.user,
@@ -1369,7 +1748,7 @@ module.exports = function (db) {
 
     } catch (err) {
       console.error(err);
-      res.redirect('/users/monev');
+      res.redirect('/');
     }
   });
 
@@ -1666,78 +2045,185 @@ module.exports = function (db) {
     }
   });
 
-
-  router.post('/pemohon/legalitas/document/delete', async (req, res) => {
-    console.log('=== DELETE DOKUMEN LEGALITAS ===');
-
+  router.get('/pemohon/legalitas-bansos/edit', async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'pemohon') {
       return res.redirect('/login');
     }
 
-    // 🔴 FIX UTAMA: ambil dari body DENGAN PARSING AMAN
-    const documentId = req.body.document_id?.trim();
-
-    console.log('USER:', req.session.user);
-    console.log('DOCUMENT ID:', documentId);
-
-    if (!documentId) {
-      console.log('❌ document_id kosong dari form');
-      return res.redirect('/users/pemohon/profile');
-    }
+    const userId = req.session.user.usersid;
 
     try {
-      // 1️⃣ VALIDASI DOKUMEN + KEPEMILIKAN + STATUS
+      const result = await db.query(`
+      SELECT *
+      FROM bansos_legalities
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [userId]);
+
+      if (result.rows.length === 0) {
+        return res.redirect('/users/pemohon/profile');
+      }
+
+      const legalitas = result.rows[0];
+
+      // 🔒 approved gak boleh edit
+      if (legalitas.verification_status === 'approved') {
+        return res.redirect('/users/pemohon/profile');
+      }
+
+      const docs = await db.query(`
+      SELECT *
+      FROM documents
+      WHERE uploaded_by = $1
+      AND document_type IS NOT NULL
+      ORDER BY uploaded_at DESC
+    `, [userId]);
+
+      // ✅ PENTING: pakai view EDIT
+      res.render('pemohon-individu/legalitas_edit', {
+        user: req.session.user,
+        legalitas,
+        documents: docs.rows
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('/users/pemohon/profile');
+    }
+  });
+
+  router.post(
+    '/pemohon/legalitas-bansos/edit',
+    uploadLegalitas,
+    async (req, res) => {
+      if (!req.session.user || req.session.user.role !== 'pemohon') {
+        return res.redirect('/login');
+      }
+
+      const userId = req.session.user.usersid;
+      const { nik, no_kk } = req.body;
+
+      try {
+        // 1️⃣ Update NIK & No KK + reset ke pending
+        await db.query(`
+        UPDATE bansos_legalities
+        SET
+          nik = $1,
+          no_kk = $2,
+          verification_status = 'pending',
+          updated_at = NOW()
+        WHERE user_id = $3
+      `, [nik, no_kk, userId]);
+
+        // 2️⃣ Upload dokumen hanya kalau ada file yang dikirim
+        const save = async (file, type) => {
+          if (!file) return;
+
+          // hapus dokumen lama dengan type yang sama dulu
+          await db.query(`
+          DELETE FROM documents
+          WHERE uploaded_by = $1
+            AND document_type = $2
+        `, [userId, type]);
+
+          await db.query(`
+          INSERT INTO documents
+            (file_name, file_path, document_type, uploaded_by, uploaded_at)
+          VALUES ($1, $2, $3, $4, NOW())
+        `, [
+            file.originalname,
+            file.filename,
+            type,
+            userId
+          ]);
+        };
+
+        await save(req.files?.ktp?.[0], 'ktp');
+        await save(req.files?.kk?.[0], 'kk');
+        await save(req.files?.sktm?.[0], 'sktm');
+        await save(req.files?.foto_rumah?.[0], 'foto_rumah');
+
+        res.redirect('/users/pemohon/profile');
+
+      } catch (err) {
+        console.error('UPDATE BANSOS LEGALITAS ERROR:', err);
+        res.redirect('/users/pemohon/legalitas-bansos/edit');
+      }
+    }
+  );
+
+
+  router.post('/pemohon/legalitas/document/delete', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'pemohon') {
+      return res.redirect('/login');
+    }
+
+    const documentId = req.body.document_id?.trim();
+    if (!documentId) return res.redirect('/users/pemohon/profile');
+
+    const userId = req.session.user.usersid;
+
+    try {
+      // cek dokumen milik user ini
       const docResult = await db.query(`
-      SELECT
-        d.documents_id,
-        d.file_path,
-        il.verification_status
-      FROM documents d
-      JOIN institution_legalities il
-        ON il.legality_id = d.legality_id
-      WHERE d.documents_id = $1
-        AND il.user_id = $2
-    `, [
-        documentId,
-        req.session.user.usersid
-      ]);
+            SELECT documents_id, file_path, legality_id, document_type, uploaded_by
+            FROM documents
+            WHERE documents_id = $1
+              AND uploaded_by = $2
+        `, [documentId, userId]);
 
       if (docResult.rows.length === 0) {
-        console.log('❌ dokumen tidak ditemukan / bukan milik user');
         return res.redirect('/users/pemohon/profile');
       }
 
       const doc = docResult.rows[0];
 
-      // 2️⃣ GUARD STATUS
-      if (!['pending', 'rejected'].includes(doc.verification_status)) {
-        console.log('⛔ status tidak boleh hapus:', doc.verification_status);
-        return res.redirect('/users/pemohon/profile');
+      // validasi status berdasarkan tipe dokumen
+      if (doc.legality_id) {
+        // dokumen hibah — cek status institution_legalities
+        const legalCheck = await db.query(`
+                SELECT verification_status
+                FROM institution_legalities
+                WHERE legality_id = $1 AND user_id = $2
+            `, [doc.legality_id, userId]);
+
+        if (legalCheck.rows.length === 0) return res.redirect('/users/pemohon/profile');
+
+        if (!['pending', 'rejected'].includes(legalCheck.rows[0].verification_status)) {
+          return res.redirect('/users/pemohon/profile');
+        }
+
+      } else if (doc.document_type) {
+        // dokumen bansos — cek status bansos_legalities
+        const bansosCheck = await db.query(`
+                SELECT verification_status
+                FROM bansos_legalities
+                WHERE user_id = $1
+                ORDER BY created_at DESC
+                LIMIT 1
+            `, [userId]);
+
+        if (bansosCheck.rows.length === 0) return res.redirect('/users/pemohon/profile');
+
+        if (!['pending', 'rejected'].includes(bansosCheck.rows[0].verification_status)) {
+          return res.redirect('/users/pemohon/profile');
+        }
       }
 
-      // 3️⃣ HAPUS FILE FISIK
+      // hapus file fisik
       const fs = require('fs');
       const path = require('path');
-
       const filePath = path.join(__dirname, '../uploads', doc.file_path);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log('✅ file fisik terhapus');
-      }
-
-      // 4️⃣ HAPUS DB
-      await db.query(`
-      DELETE FROM documents
-      WHERE documents_id = $1
-    `, [documentId]);
-
-      console.log('✅ dokumen terhapus dari DB');
+      // hapus dari DB
+      await db.query(`DELETE FROM documents WHERE documents_id = $1`, [documentId]);
 
       return res.redirect('/users/pemohon/profile');
 
     } catch (err) {
-      console.error('🔥 ERROR DELETE:', err);
+      console.error('ERROR DELETE:', err);
       return res.redirect('/users/pemohon/profile');
     }
   });
@@ -2130,7 +2616,9 @@ module.exports = function (db) {
 
   router.get('/admin/legalitas', isAdmin, async (req, res) => {
     try {
-      const result = await db.query(`
+
+      // ================= HIBAH =================
+      const hibah = await db.query(`
       SELECT
         il.legality_id,
         il.verification_status,
@@ -2166,9 +2654,50 @@ module.exports = function (db) {
       ORDER BY il.created_at DESC
     `);
 
+      // ================= BANSOS =================
+      const bansos = await db.query(`
+  SELECT
+    bl.legality_id,  -- ✅ FIX DI SINI
+    bl.verification_status,
+    bl.created_at,
+    u.name,
+    bl.nik,
+    bl.no_kk,
+
+    COALESCE(
+      json_agg(
+        json_build_object(
+          'file_name', d.file_name,
+          'file_path', d.file_path,
+          'file_type', d.file_type
+        )
+      ) FILTER (WHERE d.file_path IS NOT NULL),
+      '[]'
+    ) AS documents
+
+  FROM bansos_legalities bl
+  JOIN users u ON u.userid = bl.user_id
+
+  LEFT JOIN documents d
+    ON d.uploaded_by::int = bl.user_id
+    AND d.document_type IS NOT NULL
+
+  GROUP BY
+    bl.legality_id,
+    bl.verification_status,
+    bl.created_at,
+    u.name,
+    bl.nik,
+    bl.no_kk
+
+  ORDER BY bl.created_at DESC
+`);
+
+      // ================= RENDER =================
       res.render('admin/legalitas_detail', {
         user: req.session.user,
-        data: result.rows
+        data: hibah.rows,
+        bansos: bansos.rows
       });
 
     } catch (err) {
@@ -2188,9 +2717,9 @@ module.exports = function (db) {
         il.*, 
         u.name, 
         u.organization,
-        u.address,          -- TAMBAHAN
-        u.latitude,         -- TAMBAHAN
-        u.longitude         -- TAMBAHAN
+        u.address,          
+        u.latitude,         
+        u.longitude         
       FROM institution_legalities il
       JOIN users u ON u.userid = il.user_id
       WHERE il.legality_id = $1
@@ -2272,6 +2801,87 @@ module.exports = function (db) {
 
     } catch (err) {
       console.error('❌ Verifikasi legalitas error:', err);
+      res.redirect('/users/admin/legalitas');
+    }
+  });
+
+  router.get('/admin/legalitas-bansos/:id', isAdmin, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const result = await db.query(`
+            SELECT
+                bl.*,
+                u.name,
+                u.address,
+                u.latitude,
+                u.longitude
+            FROM bansos_legalities bl
+            JOIN users u ON u.userid = bl.user_id
+            WHERE bl.legality_id = $1
+        `, [id]);
+
+      if (result.rows.length === 0) {
+        return res.redirect('/users/admin/legalitas');
+      }
+
+      res.render('admin/legalitas_bansos_detail', {
+        user: req.session.user,
+        data: result.rows[0]
+      });
+
+    } catch (err) {
+      console.error('Detail legalitas bansos error:', err);
+      res.redirect('/users/admin/legalitas');
+    }
+  });
+
+  router.post('/admin/legalitas-bansos/:id/verifikasi', isAdmin, async (req, res) => {
+    const { verification_status, verification_notes } = req.body;
+    const legalityId = req.params.id;
+
+    try {
+      const result = await db.query(`
+            UPDATE bansos_legalities
+            SET
+                verification_status = $1,
+                verification_notes = $2,
+                verified_by = $3,
+                verified_at = NOW(),
+                updated_at = NOW()
+            WHERE legality_id = $4
+            RETURNING user_id
+        `, [
+        verification_status,
+        verification_notes || null,
+        req.session.user.usersid,
+        legalityId
+      ]);
+
+      const pemohonUserId = result.rows[0].user_id;
+
+      if (verification_status === 'approved') {
+        await createNotification(db, {
+          user_id: pemohonUserId,
+          title: 'Legalitas Disetujui',
+          message: 'Legalitas Anda telah disetujui.',
+          link: '/users/pemohon/profile'
+        });
+      }
+
+      if (verification_status === 'rejected') {
+        await createNotification(db, {
+          user_id: pemohonUserId,
+          title: 'Legalitas Ditolak',
+          message: 'Legalitas ditolak. Silakan perbaiki data dan ajukan ulang.',
+          link: '/users/pemohon/legalitas'
+        });
+      }
+
+      res.redirect('/users/admin/legalitas');
+
+    } catch (err) {
+      console.error('Verifikasi bansos error:', err);
       res.redirect('/users/admin/legalitas');
     }
   });
@@ -2490,9 +3100,16 @@ module.exports = function (db) {
       ORDER BY created_at DESC
     `);
 
+      const kategoriBansosResult = await db.query(`
+  SELECT kategori_id, nama_kategori
+  FROM kategori_bansos
+  ORDER BY kategori_id DESC
+`);
+
       res.render('admin/settings', {
         user: req.session.user,
-        kategori: kategori.rows
+        kategori: kategori.rows,
+        kategoriBansos: kategoriBansosResult.rows
       });
 
     } catch (err) {
@@ -2535,6 +3152,48 @@ module.exports = function (db) {
     }
   });
 
+  router.post('/admin/kategori-bansos', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.redirect('/login');
+    }
+
+    const { nama_kategori } = req.body;
+
+    try {
+      await db.query(`
+      INSERT INTO kategori_bansos (nama_kategori)
+      VALUES ($1)
+    `, [nama_kategori]);
+
+      res.redirect('/users/admin/settings');
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('/users/admin/settings');
+    }
+  });
+
+  router.post('/admin/kategori-bansos/delete/:id', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.redirect('/login');
+    }
+
+    const { id } = req.params;
+
+    try {
+      await db.query(`
+      DELETE FROM kategori_bansos
+      WHERE kategori_id = $1
+    `, [id]);
+
+      res.redirect('/users/admin/settings');
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('/users/admin/settings');
+    }
+  });
+
   router.post('/notifications/:id/read', async (req, res) => {
     if (!req.session.user) {
       return res.status(401).json({ error: 'unauthorized' });
@@ -2559,6 +3218,723 @@ module.exports = function (db) {
     }
   });
 
+  // ===============================
+  // MONEV - UPLOAD FOTO PROGRESS (PEMOHON)
+  // ===============================
+  router.post(
+    '/pemohon/monev/:application_id/upload-progress',
+    upload.single('foto_progress'),
+    async (req, res) => {
+      if (!req.session.user || req.session.user.role !== 'pemohon') {
+        return res.redirect('/login');
+      }
+
+      const { application_id } = req.params;
+      const userId = req.session.user.usersid;
+
+      try {
+        // 1️⃣ Validasi aplikasi milik pemohon & sudah disetujui
+        const app = await db.query(`
+        SELECT application_id
+        FROM applications
+        WHERE application_id = $1
+          AND user_id = $2
+          AND status = 'approved'
+      `, [application_id, userId]);
+
+        if (app.rows.length === 0) {
+          return res.redirect('/users/monev');
+        }
+
+        // Cek TTD sudah diverifikasi admin
+        const ttdCheck = await db.query(`
+    SELECT documents_id, ttd_status
+    FROM documents
+    WHERE application_id = $1
+      AND document_type = 'ttd'
+      AND ttd_status = 'approved'
+    LIMIT 1
+`, [application_id]);
+
+        if (ttdCheck.rows.length === 0) {
+          return res.redirect('/users/monev?error=ttd_belum_diverifikasi');
+        }
+
+        // 2️⃣ Cek progress saat ini, maksimal stage 4 (100%)
+        const progressResult = await db.query(`
+        SELECT COALESCE(MAX(progress_stage), 0) AS current_stage
+        FROM documents
+        WHERE application_id = $1
+          AND document_type = 'progress'
+          AND progress_status = 'approved'
+      `, [application_id]);
+
+        const currentStage = Number(progressResult.rows[0].current_stage);
+
+        if (currentStage >= 4) {
+          return res.redirect('/users/monev?error=maxprogress');
+        }
+
+        // 3️⃣ Cek apakah ada foto yang masih pending
+        const pending = await db.query(`
+        SELECT documents_id
+        FROM documents
+        WHERE application_id = $1
+          AND document_type = 'progress'
+          AND progress_status = 'pending'
+      `, [application_id]);
+
+        if (pending.rows.length > 0) {
+          return res.redirect('/users/monev?error=pending');
+        }
+
+        // 4️⃣ Simpan foto progress
+        if (!req.file) {
+          return res.redirect('/users/monev?error=nofile');
+        }
+
+        await db.query(`
+        INSERT INTO documents
+          (application_id, file_name, file_path, file_type,
+           uploaded_by, uploaded_at, document_type,
+           progress_stage, progress_status)
+        VALUES ($1, $2, $3, $4, $5, NOW(), 'progress', $6, 'pending')
+      `, [
+          application_id,
+          req.file.originalname,
+          req.file.filename,
+          req.file.mimetype,
+          userId,
+          currentStage + 1  // stage berikutnya (belum approved)
+        ]);
+
+        // 5️⃣ Notifikasi ke admin
+        const admins = await db.query(`
+        SELECT userid FROM users WHERE role = 'admin'
+      `);
+
+        for (const admin of admins.rows) {
+          await createNotification(db, {
+            user_id: admin.userid,
+            title: 'Upload Foto Progress',
+            message: `Pemohon mengupload foto progress tahap ${currentStage + 1}.`,
+            link: `/users/monev`
+          });
+        }
+
+        res.redirect('/users/monev?success=uploaded');
+
+      } catch (err) {
+        console.error('Upload progress error:', err);
+        res.redirect('/users/monev');
+      }
+    }
+  );
+
+  // ===============================
+  // MONEV - APPROVE PROGRESS (ADMIN)
+  // ===============================
+  router.post(
+    '/admin/monev/:application_id/progress/:doc_id/approve',
+    isAdmin,
+    async (req, res) => {
+      const { application_id, doc_id } = req.params;
+      const { progress_notes } = req.body;
+
+      try {
+        await db.query(`
+        UPDATE documents
+        SET progress_status = 'approved',
+            progress_notes = $1,
+            reviewed_by = $2,
+            reviewed_at = NOW()
+        WHERE documents_id = $3
+          AND application_id = $4
+          AND document_type = 'progress'
+      `, [
+          progress_notes || null,
+          req.session.user.usersid,
+          doc_id,
+          application_id
+        ]);
+
+        // Notifikasi ke pemohon
+        const appResult = await db.query(`
+        SELECT user_id, title FROM applications
+        WHERE application_id = $1
+      `, [application_id]);
+
+        const pemohonId = appResult.rows[0].user_id;
+        const judul = appResult.rows[0].title;
+
+        // Ambil stage yang baru diapprove
+        const stageResult = await db.query(`
+        SELECT progress_stage FROM documents
+        WHERE documents_id = $1
+      `, [doc_id]);
+
+        const stage = stageResult.rows[0].progress_stage;
+
+        await createNotification(db, {
+          user_id: pemohonId,
+          title: 'Progress Disetujui',
+          message: `Foto progress tahap ${stage} untuk "${judul}" disetujui. Progress: ${stage * 25}%`,
+          link: `/users/monev`
+        });
+
+        res.redirect('/users/monev');
+
+      } catch (err) {
+        console.error('Approve progress error:', err);
+        res.redirect('/users/monev');
+      }
+    }
+  );
+
+  // ===============================
+  // MONEV - REJECT PROGRESS (ADMIN)
+  // ===============================
+  router.post(
+    '/admin/monev/:application_id/progress/:doc_id/reject',
+    isAdmin,
+    async (req, res) => {
+      const { application_id, doc_id } = req.params;
+      const { progress_notes } = req.body;
+
+      try {
+        await db.query(`
+        UPDATE documents
+        SET progress_status = 'rejected',
+            progress_notes = $1,
+            reviewed_by = $2,
+            reviewed_at = NOW()
+        WHERE documents_id = $3
+          AND application_id = $4
+          AND document_type = 'progress'
+      `, [
+          progress_notes || null,
+          req.session.user.usersid,
+          doc_id,
+          application_id
+        ]);
+
+        // Notifikasi ke pemohon
+        const appResult = await db.query(`
+        SELECT user_id, title FROM applications
+        WHERE application_id = $1
+      `, [application_id]);
+
+        const pemohonId = appResult.rows[0].user_id;
+        const judul = appResult.rows[0].title;
+
+        await createNotification(db, {
+          user_id: pemohonId,
+          title: 'Progress Ditolak',
+          message: `Foto progress untuk "${judul}" ditolak. Silakan upload ulang.`,
+          link: `/users/monev`
+        });
+
+        res.redirect('/users/monev');
+
+      } catch (err) {
+        console.error('Reject progress error:', err);
+        res.redirect('/users/monev');
+      }
+    }
+  );
+
+  // ===============================
+  // TANDA TANGAN - GET PAGE
+  // ===============================
+  router.get('/pemohon/ttd/:application_id', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'pemohon') {
+      return res.redirect('/login');
+    }
+
+    const { application_id } = req.params;
+    const userId = req.session.user.usersid;
+
+    try {
+      // 1️⃣ Validasi aplikasi milik pemohon & sudah disetujui evaluator
+      const app = await db.query(`
+            SELECT
+                a.application_id,
+                a.title,
+                a.request_amount,
+                a.approved_amount,
+                a.category,
+                u.name,
+                u.organization
+            FROM applications a
+            JOIN users u ON u.userid = a.user_id
+            WHERE a.application_id = $1
+              AND a.user_id = $2
+            AND EXISTS (
+                SELECT 1 FROM evaluations
+                WHERE application_id = a.application_id
+                AND recommendation = 'approve'
+            )
+        `, [application_id, userId]);
+
+      if (app.rows.length === 0) {
+        return res.redirect('/users/monev');
+      }
+
+      // 2️⃣ Cek apakah sudah tanda tangan
+      const ttd = await db.query(`
+            SELECT *
+            FROM documents
+            WHERE application_id = $1
+              AND document_type = 'ttd'
+            ORDER BY uploaded_at DESC
+            LIMIT 1
+        `, [application_id]);
+
+      res.render('pemohon/ttd', {
+        user: req.session.user,
+        data: app.rows[0],
+        ttd: ttd.rows[0] || null
+      });
+
+    } catch (err) {
+      console.error('TTD page error:', err);
+      res.redirect('/users/monev');
+    }
+  });
+
+  // ===============================
+  // TANDA TANGAN - POST UPLOAD
+  // ===============================
+  router.post(
+    '/pemohon/ttd/:application_id/upload',
+    upload.single('ttd_file'),
+    async (req, res) => {
+      if (!req.session.user || req.session.user.role !== 'pemohon') {
+        return res.redirect('/login');
+      }
+
+      const { application_id } = req.params;
+      const { ttd_base64 } = req.body;
+      const userId = req.session.user.usersid;
+
+      try {
+        // 1️⃣ Validasi aplikasi
+        const app = await db.query(`
+                SELECT a.*, u.name, u.organization
+                FROM applications a
+                JOIN users u ON u.userid = a.user_id
+                WHERE a.application_id = $1
+                  AND a.user_id = $2
+                AND EXISTS (
+                    SELECT 1 FROM evaluations
+                    WHERE application_id = $1
+                    AND recommendation = 'approve'
+                )
+            `, [application_id, userId]);
+
+        if (app.rows.length === 0) {
+          return res.redirect('/users/monev');
+        }
+
+        const data = app.rows[0];
+
+        // 2️⃣ Hapus TTD lama
+        await db.query(`
+                DELETE FROM documents
+                WHERE application_id = $1
+                  AND document_type = 'ttd'
+            `, [application_id]);
+
+        // 3️⃣ Simpan gambar TTD
+        const fs = require('fs');
+        const path = require('path');
+        let ttdFileName;
+
+        if (req.file) {
+          ttdFileName = req.file.filename;
+        } else if (ttd_base64) {
+          const base64Data = ttd_base64.replace(/^data:image\/png;base64,/, '');
+          ttdFileName = `ttd-${Date.now()}.png`;
+          const filePath = path.join(__dirname, '../uploads', ttdFileName);
+          fs.writeFileSync(filePath, base64Data, 'base64');
+        } else {
+          return res.redirect(`/users/pemohon/ttd/${application_id}?error=nofile`);
+        }
+
+        // 4️⃣ Generate PDF pakai pdfkit
+        const PDFDocument = require('pdfkit');
+        const pdfFileName = `ttd-pdf-${Date.now()}.pdf`;
+        const pdfPath = path.join(__dirname, '../uploads', pdfFileName);
+
+        await new Promise((resolve, reject) => {
+          const doc = new PDFDocument({ margin: 50 });
+          const stream = fs.createWriteStream(pdfPath);
+          doc.pipe(stream);
+
+          // Header
+          doc.fontSize(18).font('Helvetica-Bold')
+            .text('SURAT PERSETUJUAN PENERIMAAN DANA', { align: 'center' });
+          doc.fontSize(11).font('Helvetica')
+            .text('Sistem Hibah & Bansos', { align: 'center' });
+          doc.moveDown();
+          doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+          doc.moveDown();
+
+          // Detail pengajuan
+          doc.fontSize(12).font('Helvetica-Bold').text('Detail Pengajuan');
+          doc.moveDown(0.5);
+
+          const details = [
+            ['Judul', data.title],
+            ['Nama Pemohon', data.name],
+            ['Organisasi', data.organization || '-'],
+            ['Dana Diajukan', `Rp ${Number(data.request_amount || 0).toLocaleString('id-ID')}`],
+            ['Dana Disetujui', `Rp ${Number(data.approved_amount || 0).toLocaleString('id-ID')}`],
+          ];
+
+          details.forEach(([label, value]) => {
+            doc.fontSize(11).font('Helvetica-Bold').text(label + ':', { continued: true, width: 150 });
+            doc.font('Helvetica').text(' ' + value);
+          });
+
+          doc.moveDown();
+          doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+          doc.moveDown();
+
+          // Pernyataan
+          doc.fontSize(12).font('Helvetica-Bold').text('Pernyataan Persetujuan');
+          doc.moveDown(0.5);
+          doc.fontSize(11).font('Helvetica').text(
+            'Saya yang bertanda tangan di bawah ini menyatakan telah menerima dan menyetujui penerimaan dana hibah/bansos sebagaimana tercantum di atas, dan bertanggung jawab atas penggunaannya sesuai proposal yang telah diajukan.',
+            { align: 'justify' }
+          );
+          doc.moveDown();
+
+          // Tanggal
+          const tgl = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+          doc.fontSize(11).font('Helvetica').text(`Ditandatangani pada: ${tgl}`);
+          doc.moveDown();
+
+          // Gambar TTD
+          doc.fontSize(12).font('Helvetica-Bold').text('Tanda Tangan Pemohon:');
+          doc.moveDown(0.5);
+          const ttdPath = path.join(__dirname, '../uploads', ttdFileName);
+          if (fs.existsSync(ttdPath)) {
+            doc.image(ttdPath, { width: 200, height: 80 });
+          }
+
+          doc.moveDown(2);
+          doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+          doc.moveDown(0.5);
+          doc.fontSize(8).font('Helvetica')
+            .text('Dokumen ini digenerate secara otomatis oleh sistem.', { align: 'center' });
+
+          doc.end();
+          stream.on('finish', resolve);
+          stream.on('error', reject);
+        });
+
+        // 5️⃣ Simpan ke DB — gambar TTD
+        await db.query(`
+                INSERT INTO documents
+                    (application_id, file_name, file_path, file_type,
+                     uploaded_by, uploaded_at, document_type, ttd_status)
+                VALUES ($1, $2, $3, $4, $5, NOW(), 'ttd', 'pending')
+            `, [
+          application_id,
+          ttdFileName,
+          ttdFileName,
+          'image/png',
+          userId
+        ]);
+
+        // 6️⃣ Simpan ke DB — PDF TTD
+        await db.query(`
+                INSERT INTO documents
+                    (application_id, file_name, file_path, file_type,
+                     uploaded_by, uploaded_at, document_type, ttd_status)
+                VALUES ($1, $2, $3, $4, $5, NOW(), 'ttd_pdf', 'pending')
+            `, [
+          application_id,
+          pdfFileName,
+          pdfFileName,
+          'application/pdf',
+          userId
+        ]);
+
+        // 7️⃣ Notifikasi admin
+        const admins = await db.query(`SELECT userid FROM users WHERE role = 'admin'`);
+
+        for (const admin of admins.rows) {
+          await createNotification(db, {
+            user_id: admin.userid,
+            title: 'Tanda Tangan Diterima',
+            message: `Pemohon telah menandatangani persetujuan untuk "${data.title}".`,
+            link: `/users/monev`
+          });
+        }
+
+        res.redirect(`/users/pemohon/ttd/${application_id}?success=1`);
+
+      } catch (err) {
+        console.error('TTD upload error:', err);
+        res.redirect(`/users/pemohon/ttd/${application_id}?error=1`);
+      }
+    }
+  );
+
+  // ===============================
+  // TTD - VERIFIKASI ADMIN
+  // ===============================
+  router.post('/admin/ttd/:doc_id/verifikasi', isAdmin, async (req, res) => {
+    const { doc_id } = req.params;
+    const { ttd_status } = req.body;
+
+    try {
+      await db.query(`
+            UPDATE documents
+            SET ttd_status = $1,
+                ttd_verified_by = $2,
+                ttd_verified_at = NOW()
+            WHERE documents_id = $3
+              AND document_type = 'ttd'
+        `, [ttd_status, req.session.user.usersid, doc_id]);
+
+      // Notifikasi ke pemohon
+      const appResult = await db.query(`
+            SELECT a.user_id, a.title, a.application_id
+            FROM documents d
+            JOIN applications a ON a.application_id = d.application_id
+            WHERE d.documents_id = $1
+        `, [doc_id]);
+
+      if (appResult.rows.length > 0) {
+        const { user_id, title, application_id } = appResult.rows[0];
+
+        if (ttd_status === 'approved') {
+          await createNotification(db, {
+            user_id,
+            title: 'Tanda Tangan Diverifikasi',
+            message: `Tanda tangan untuk "${title}" telah diverifikasi. Anda dapat mulai upload foto progress pembangunan.`,
+            link: `/users/monev`
+          });
+        } else {
+          await createNotification(db, {
+            user_id,
+            title: 'Tanda Tangan Ditolak',
+            message: `Tanda tangan untuk "${title}" ditolak admin. Silakan tanda tangan ulang.`,
+            link: `/users/pemohon/ttd/${application_id}`
+          });
+        }
+      }
+
+      res.redirect('/users/monev');
+
+    } catch (err) {
+      console.error('Verifikasi TTD error:', err);
+      res.redirect('/users/monev');
+    }
+  });
+
+
+  // ===============================
+  // AI SEARCH
+  // ===============================
+  router.get('/search', async (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    const { q } = req.query;
+    if (!q || q.trim() === '') return res.redirect('back');
+
+    const user = req.session.user;
+
+    try {
+      const Groq = require('groq-sdk');
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: `Kamu adalah AI search assistant untuk sistem pengajuan hibah dan bansos. 
+Selalu return JSON saja tanpa teks lain, tanpa markdown backtick.`
+          },
+          {
+            role: 'user',
+            content: `User dengan role "${user.role}" mencari: "${q}"
+
+Return JSON dengan format:
+{
+  "keywords": ["kata kunci bermakna saja, bukan kata ganti seperti saya/kami/kita"],
+  "status_filter": null atau salah satu dari ["submitted", "approved", "rejected", "draft"],
+  "category_filter": null atau string kategori,
+  "search_type": salah satu dari ["pengajuan", "user", "legalitas", "semua"]
+}
+
+Contoh:
+- "proposal saya yang disetujui" → {"keywords":[],"status_filter":"approved","category_filter":null,"search_type":"pengajuan"}
+- "hibah kantor RT" → {"keywords":["kantor RT"],"status_filter":null,"category_filter":null,"search_type":"pengajuan"}
+- "menunggu review" → {"keywords":[],"status_filter":"submitted","category_filter":null,"search_type":"pengajuan"}
+- "user admin" → {"keywords":["admin"],"status_filter":null,"category_filter":null,"search_type":"user"}
+- "legalitas belum diverifikasi" → {"keywords":[],"status_filter":"pending","category_filter":null,"search_type":"legalitas"}`
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 200
+      });
+
+      const aiText = completion.choices[0].message.content.trim();
+
+      let aiFilter;
+      try {
+        const clean = aiText.replace(/```json|```/g, '').trim();
+        aiFilter = JSON.parse(clean);
+      } catch (e) {
+        aiFilter = {
+          keywords: [q],
+          status_filter: null,
+          category_filter: null,
+          search_type: 'semua'
+        };
+      }
+
+      // 2️⃣ Build query
+      const results = {};
+      const keywords = aiFilter.keywords && aiFilter.keywords.length > 0
+        ? aiFilter.keywords.join('%')
+        : '';
+      const keywordParam = keywords ? `%${keywords}%` : '%';
+
+      // Search pengajuan
+      if (['pengajuan', 'semua'].includes(aiFilter.search_type)) {
+        let pengajuanQuery = `
+                SELECT
+                    a.application_id,
+                    a.title,
+                    a.category,
+                    a.request_amount,
+                    a.status,
+                    u.name AS pemohon_name
+                FROM applications a
+                JOIN users u ON u.userid = a.user_id
+                WHERE 1=1
+            `;
+
+        const params = [];
+        let paramCount = 1;
+
+        if (keywords && !aiFilter.status_filter) {
+          pengajuanQuery += ` AND (
+        a.title ILIKE $${paramCount}
+        OR a.category ILIKE $${paramCount}
+        OR a.description ILIKE $${paramCount}
+        OR u.name ILIKE $${paramCount}
+    )`;
+          params.push(keywordParam);
+          paramCount++;
+        }
+
+        if (user.role === 'pemohon') {
+          pengajuanQuery += ` AND a.user_id = $${paramCount}`;
+          params.push(user.usersid);
+          paramCount++;
+        }
+
+        if (aiFilter.status_filter) {
+          pengajuanQuery += ` AND a.status = $${paramCount}`;
+          params.push(aiFilter.status_filter);
+          paramCount++;
+        }
+
+        if (aiFilter.category_filter) {
+          pengajuanQuery += ` AND a.category ILIKE $${paramCount}`;
+          params.push(`%${aiFilter.category_filter}%`);
+          paramCount++;
+        }
+
+        pengajuanQuery += ` ORDER BY a.created_at DESC LIMIT 20`;
+
+        const pengajuanResult = await db.query(pengajuanQuery, params);
+        results.pengajuan = pengajuanResult.rows;
+      }
+
+      // Search user (hanya admin)
+      if (user.role === 'admin' && ['user', 'semua'].includes(aiFilter.search_type)) {
+        const params = keywords ? [keywordParam] : ['%'];
+        const userResult = await db.query(`
+                SELECT userid, name, email, role, organization
+                FROM users
+                WHERE name ILIKE $1
+                   OR email ILIKE $1
+                   OR organization ILIKE $1
+                   OR role ILIKE $1
+                ORDER BY created_at DESC
+                LIMIT 10
+            `, params);
+        results.users = userResult.rows;
+      }
+
+      // Search legalitas (hanya admin)
+      if (user.role === 'admin' && ['legalitas', 'semua'].includes(aiFilter.search_type)) {
+        const legalConditions = ['1=1'];
+        const legalParams = [];
+        let legalCount = 1;
+
+        if (keywords && !aiFilter.status_filter) {
+          legalConditions.push(`(
+            u.name ILIKE $${legalCount}
+            OR u.organization ILIKE $${legalCount}
+        )`);
+          legalParams.push(`%${keywords}%`);
+          legalCount++;
+        }
+
+        if (aiFilter.status_filter) {
+          legalConditions.push(`il.verification_status = $${legalCount}`);
+          legalParams.push(aiFilter.status_filter);
+          legalCount++;
+        }
+
+        console.log('LEGAL CONDITIONS:', legalConditions);
+        console.log('LEGAL PARAMS:', legalParams);
+
+        const legalResult = await db.query(`
+        SELECT
+            il.legality_id,
+            il.verification_status,
+            u.name,
+            u.organization
+        FROM institution_legalities il
+        JOIN users u ON u.userid = il.user_id
+        WHERE ${legalConditions.join(' AND ')}
+        ORDER BY il.created_at DESC
+        LIMIT 10
+    `, legalParams);
+
+        console.log('LEGAL ROWS:', legalResult.rows);
+
+        results.legalitas = legalResult.rows;
+      }
+
+      res.render('search_results', {
+        user: req.session.user,
+        searchQuery: q,
+        aiFilter,
+        results
+      });
+
+    } catch (err) {
+      console.error('AI Search error:', err);
+      res.render('search_results', {
+        user: req.session.user,
+        searchQuery: q,
+        aiFilter: null,
+        results: {},
+        error: true
+      });
+    }
+  });
 
   return router;
 };

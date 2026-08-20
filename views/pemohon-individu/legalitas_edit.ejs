@@ -1,0 +1,105 @@
+<%- include('../partials/header', { title: "Edit Legalitas Bansos" , user }) %>
+
+  <div id="layoutSidenav_nav">
+    <nav class="sb-sidenav accordion spotify-green">
+      <div class="sb-sidenav-menu">
+        <% if (user.role==='pemohon' ) { %>
+          <% if (user.rolepemohon==='individu' ) { %>
+            <%- include('../partials/menu/pemohon_individu') %>
+              <% } else { %>
+                <%- include('../partials/menu/pemohon_lembaga') %>
+                  <% } %>
+                    <% } else { %>
+                      <%- include('../partials/menu/' + user.role) %>
+                        <% } %>
+      </div>
+    </nav>
+  </div>
+
+  <div id="layoutSidenav_content">
+    <main>
+      <div class="container-fluid px-4">
+
+        <h1 class="mt-4 fw-bold">Edit Legalitas Bansos</h1>
+        <p class="text-muted">Perbarui data legalitas Anda</p>
+
+        <div class="card shadow-sm mt-4">
+          <div class="card-body">
+
+            <form action="/users/pemohon/legalitas-bansos/edit" method="POST" enctype="multipart/form-data">
+
+              <div class="mb-3">
+                <label class="form-label fw-bold">NIK</label>
+                <input type="text" name="nik" class="form-control" value="<%= legalitas?.nik || '' %>" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-bold">No KK</label>
+                <input type="text" name="no_kk" class="form-control" value="<%= legalitas?.no_kk || '' %>" required>
+              </div>
+
+              <!-- Upload dokumen hanya muncul kalau rejected -->
+              <% if (legalitas.verification_status==='rejected' ) { %>
+
+                <hr class="my-4">
+                <h5 class="fw-bold mb-3">Upload Ulang Dokumen</h5>
+
+                <% if (documents && documents.length> 0) { %>
+                  <div class="row mb-3">
+                    <% documents.forEach(d=> { %>
+                      <div class="col-md-6 mb-2">
+                        <div class="border rounded p-2 d-flex align-items-center gap-2">
+                          <i class="fas fa-file me-1"></i>
+                          <span class="badge bg-secondary me-1">
+                            <%= d.document_type %>
+                          </span>
+                          <small>
+                            <%= d.file_name %>
+                          </small>
+                        </div>
+                      </div>
+                      <% }) %>
+                  </div>
+                  <% } %>
+
+                    <div class="mb-3">
+                      <label class="form-label">KTP</label>
+                      <input type="file" name="ktp" class="form-control" accept="image/*,application/pdf">
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Kartu Keluarga</label>
+                      <input type="file" name="kk" class="form-control" accept="image/*,application/pdf">
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">SKTM</label>
+                      <input type="file" name="sktm" class="form-control" accept="image/*,application/pdf">
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Foto Rumah</label>
+                      <input type="file" name="foto_rumah" class="form-control" accept="image/*">
+                    </div>
+
+                    <% } %>
+
+                      <div class="mt-4">
+                        <button class="btn btn-warning fw-bold">
+                          <i class="fas fa-save"></i> Update
+                        </button>
+                        <a href="/users/pemohon/profile" class="btn btn-secondary ms-2">
+                          Batal
+                        </a>
+                      </div>
+
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <%- include('../partials/footer') %>
+  </div>

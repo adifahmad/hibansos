@@ -1,130 +1,140 @@
-<%- include('../partials/header', { title: "Daftar Pengajuan Saya", user }) %>
+<%- include('../partials/header', { title: "Daftar Pengajuan Saya" , user }) %>
 
-<div id="layoutSidenav_nav">
-  <nav class="sb-sidenav accordion spotify-green">
-    <div class="sb-sidenav-menu">
-      <%- include(`../partials/menu/${user.role}`) %>
-    </div>
-  </nav>
-</div>
+  <div id="layoutSidenav_nav">
+    <nav class="sb-sidenav accordion spotify-green">
 
-<div id="layoutSidenav_content">
-  <main>
-    <div class="container-fluid px-4">
+      <div class="sb-sidenav-menu">
+        <% if (user.role==='pemohon' ) { %>
 
-      <h1 class="mt-4 fw-bold">Daftar Pengajuan Saya</h1>
-      <p class="text-muted">
-        Pengajuan berstatus <b>Draft</b> masih bisa diedit dan disubmit.
-      </p>
+          <% if (user.rolepemohon==='individu' ) { %>
+            <%- include('../partials/menu/pemohon_individu') %>
+              <% } else { %>
+                <%- include('../partials/menu/pemohon_lembaga') %>
+                  <% } %>
 
-      <div class="card mb-4">
-        <div class="card-header">
-          <i class="fas fa-table me-1"></i>
-          Data Pengajuan
-        </div>
-
-        <div class="card-body">
-          <table class="table table-bordered table-striped">
-            <thead>
-              <tr>
-                <th>Judul</th>
-                <th>Kategori</th>
-                <th>Dana (Rp)</th>
-                <th>Status</th>
-                <th>Tanggal</th>
-                <th style="width:200px">Aksi</th>
-              </tr>
-            </thead>
-
-            <tbody>
-            <% if (data.length === 0) { %>
-              <tr>
-                <td colspan="6" class="text-center text-muted py-4">
-                  <i class="fas fa-folder-open fa-2x mb-2"></i><br>
-                  Belum ada pengajuan hibah
-                </td>
-              </tr>
-            <% } else { %>
-
-              <% data.forEach(p => { %>
-                <tr>
-                  <td><%= p.title %></td>
-                  <td><%= p.category %></td>
-                  <td><%= Number(p.request_amount).toLocaleString('id-ID') %></td>
-
-                  <td>
-                    <% if (p.status_label === 'Draft') { %>
-                      <span class="badge bg-secondary">Draft</span>
-                    <% } else if (p.status_label === 'Menunggu Review') { %>
-                      <span class="badge bg-warning text-dark">Menunggu Review</span>
-                    <% } else if (p.status_label === 'Menunggu Evaluasi') { %>
-                      <span class="badge bg-info">Menunggu Evaluasi</span>
-                    <% } else if (p.status_label === 'Disetujui') { %>
-                      <span class="badge bg-success">Disetujui</span>
-                    <% } else if (p.status_label === 'Ditolak') { %>
-                      <span class="badge bg-danger">Ditolak</span>
                     <% } else { %>
-                      <span class="badge bg-secondary">Diproses</span>
-                    <% } %>
-                  </td>
-
-                  <td>
-                    <%= p.submission_date
-                      ? new Date(p.submission_date).toLocaleDateString('id-ID')
-                      : '-' %>
-                  </td>
-
-                  <td class="text-nowrap">
-
-                    <% if (p.status_label === 'Draft') { %>
-
-                      <a href="/users/pemohon/pengajuan/edit/<%= p.application_id %>"
-                         class="btn btn-sm btn-warning mb-1">
-                        <i class="fas fa-edit"></i> Edit
-                      </a>
-
-                      <form
-                        action="/users/pemohon/pengajuan/submit/<%= p.application_id %>"
-                        method="POST"
-                        class="d-inline"
-                        onsubmit="return confirm('Yakin submit final?')">
-
-                        <% if (legalitasStatus === 'approved') { %>
-                          <button class="btn btn-sm btn-success">
-                            <i class="fas fa-paper-plane"></i> Submit
-                          </button>
-                        <% } else { %>
-                          <button type="button"
-                                  class="btn btn-sm btn-secondary"
-                                  disabled
-                                  title="Legalitas belum diverifikasi admin">
-                            <i class="fas fa-lock"></i> Submit
-                          </button>
+                      <%- include('../partials/menu/' + user.role) %>
                         <% } %>
-
-                      </form>
-
-                    <% } else { %>
-
-                      <a href="/users/pemohon/pengajuan/<%= p.application_id %>"
-                         class="btn btn-sm btn-info">
-                        <i class="fas fa-eye"></i> Detail
-                      </a>
-
-                    <% } %>
-
-                  </td>
-                </tr>
-              <% }) %>
-
-            <% } %>
-            </tbody>
-          </table>
-        </div>
       </div>
 
-    </div>
-  </main>
+    </nav>
+  </div>
 
-  <%- include('../partials/footer') %>
-</div>
+  <div id="layoutSidenav_content">
+    <main>
+      <div class="container-fluid px-4">
+
+        <h1 class="mt-4 fw-bold">Daftar Pengajuan Saya</h1>
+        <p class="text-muted">
+          Pengajuan berstatus <b>Draft</b> masih bisa diedit dan disubmit.
+        </p>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            Data Pengajuan
+          </div>
+
+          <div class="card-body">
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Judul</th>
+                  <th>Kategori</th>
+                  <th>Dana (Rp)</th>
+                  <th>Status</th>
+                  <th>Tanggal</th>
+                  <th style="width:200px">Aksi</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <% if (data.length===0) { %>
+                  <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                      <i class="fas fa-folder-open fa-2x mb-2"></i><br>
+                      Belum ada pengajuan hibah
+                    </td>
+                  </tr>
+                  <% } else { %>
+
+                    <% data.forEach(p=> { %>
+                      <tr>
+                        <td>
+                          <%= p.title %>
+                        </td>
+                        <td>
+                          <%= p.category %>
+                        </td>
+                        <td>
+                          <%= Number(p.request_amount).toLocaleString('id-ID') %>
+                        </td>
+
+                        <td>
+                          <% if (p.status_label==='Draft' ) { %>
+                            <span class="badge bg-secondary">Draft</span>
+                            <% } else if (p.status_label==='Menunggu Review' ) { %>
+                              <span class="badge bg-warning text-dark">Menunggu Review</span>
+                              <% } else if (p.status_label==='Menunggu Evaluasi' ) { %>
+                                <span class="badge bg-info">Menunggu Evaluasi</span>
+                                <% } else if (p.status_label==='Disetujui' ) { %>
+                                  <span class="badge bg-success">Disetujui</span>
+                                  <% } else if (p.status_label==='Ditolak' ) { %>
+                                    <span class="badge bg-danger">Ditolak</span>
+                                    <% } else { %>
+                                      <span class="badge bg-secondary">Diproses</span>
+                                      <% } %>
+                        </td>
+
+                        <td>
+                          <%= p.submission_date ? new Date(p.submission_date).toLocaleDateString('id-ID') : '-' %>
+                        </td>
+
+                        <td class="text-nowrap">
+
+                          <% if (p.status_label==='Draft' ) { %>
+
+                            <a href="/users/pemohon/pengajuan/edit/<%= p.application_id %>"
+                              class="btn btn-sm btn-warning mb-1">
+                              <i class="fas fa-edit"></i> Edit
+                            </a>
+
+                            <form action="/users/pemohon/pengajuan/submit/<%= p.application_id %>" method="POST"
+                              class="d-inline" onsubmit="return confirm('Yakin submit final?')">
+
+                              <% if (legalitasStatus==='approved' ) { %>
+                                <button class="btn btn-sm btn-success">
+                                  <i class="fas fa-paper-plane"></i> Submit
+                                </button>
+                                <% } else { %>
+                                  <button type="button" class="btn btn-sm btn-secondary" disabled
+                                    title="Legalitas belum diverifikasi admin">
+                                    <i class="fas fa-lock"></i> Submit
+                                  </button>
+                                  <% } %>
+
+                            </form>
+
+                            <% } else { %>
+
+                              <a href="/users/pemohon/pengajuan/<%= p.application_id %>" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> Detail
+                              </a>
+
+                              <% } %>
+
+                        </td>
+                      </tr>
+                      <% }) %>
+
+                        <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <%- include('../partials/footer') %>
+  </div>

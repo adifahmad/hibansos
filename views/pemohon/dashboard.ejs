@@ -6,7 +6,19 @@
         <div id="layoutSidenav_nav">
             <nav class="sb-sidenav accordion spotify-green">
                 <div class="sb-sidenav-menu">
-                    <%- include("../partials/menu/" + user.role) %>
+                    <% if (user.role==='pemohon' ) { %>
+
+                        <% if (user.rolepemohon==='individu' ) { %>
+                            <%- include('../partials/menu/pemohon_individu') %>
+                                <% } else { %>
+                                    <%- include('../partials/menu/pemohon_lembaga') %>
+                                        <% } %>
+
+                                            <% } else { %>
+
+                                                <%- include('../partials/menu/' + user.role) %>
+
+                                                    <% } %>
                 </div>
             </nav>
         </div>

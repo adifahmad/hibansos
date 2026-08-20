@@ -11737,3 +11737,28 @@ body {
     width: 100% !important;
     height: 100% !important;
 }
+
+.bansos-card {
+  background-color: #fff !important;
+  border: 1px solid #e5e5e5;
+  width: 400%;
+  max-width: 1200px;
+}
+
+.bansos-card-body {
+   background-color: #fff !important;
+  width: 100%;
+}
+
+.bansos-wrapper {
+  background-color: #fff !important;
+  justify-content: flex-start; /* atau center */
+}
+
+.bansos-form {
+  width: 100%;
+}
+
+.bansos-page {
+  background-color: #fff !important;
+}
